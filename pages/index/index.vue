@@ -1,6 +1,6 @@
 <template>
 	<view class="scroll">
-		<page :content="content" :chapter="chapter" pageType="scroll" :start="0" :fontsize="fontsize" :color="color"></page>
+		<page ref="page" pageType="scroll" :fontsize="fontsize" :color="color" @loadmore="loadmoreContent"></page>
 	</view>
 </template>
 
@@ -11,8 +11,47 @@
 			return {
 				pages: [],
 				list: [],
-				chapter: 0,
-				content: `第一章 不知道
+				scrollTop: 400,
+				fontsize: 20,
+				color: '#333',
+				contents: []
+			}
+		},
+		onLoad() {
+			this.list.push({
+				start: 0
+			})
+		},
+		onReady() {
+			this.contents = [{
+				chapter: 2,
+				start: 0,
+				content: this.getContent(2)
+			}]
+			const { page } = this.$refs;
+			page.init({
+				contents: this.contents,
+				current: 2,
+				upper: false,
+				lower: true
+			})
+		},
+		methods: {
+			addFontsize () {
+				this.fontsize += 4;
+			},
+			changeColor () {
+				this.color = 'red';
+			},
+			loadmoreContent (chapter, next) {
+				next({
+					chapter: chapter,
+					start: 0,
+					content: this.getContent(chapter)
+				});
+			},
+			getContent (chapter = 1) {
+return `第${chapter}章
 你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊
 你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊
 你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊
@@ -114,46 +153,7 @@
 你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊
 你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊
 你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊
-				`,
-				scrollTop: 400,
-				fontsize: 20,
-				color: '#333'
-			}
-		},
-		onLoad() {
-			this.list.push({
-				start: 0
-			})
-		},
-		methods: {
-			addFontsize () {
-				this.fontsize += 4;
-			},
-			changeColor () {
-				this.color = 'red';
-			},
-			addPageTop () {
-				console.log(123);
-				this.pages.unshift(`
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊神经病啊
-				`)
-				this.$nextTick(() => {
-					this.scrollTop = 390;
-				})
+`
 			}
 		},
 		components: {
