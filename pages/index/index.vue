@@ -24,16 +24,15 @@
 		},
 		onReady() {
 			this.contents = [{
-				chapter: 2,
+				chapter: 3,
 				start: 0,
-				content: this.getContent(2)
+				content: this.getContent(3)
 			}]
 			const { page } = this.$refs;
 			page.init({
 				contents: this.contents,
-				current: 2,
 				upper: false,
-				lower: true
+				lower: false
 			})
 		},
 		methods: {
@@ -47,8 +46,8 @@
 				next({
 					chapter: chapter,
 					start: 0,
-					content: this.getContent(chapter)
-				});
+					content: this.getContent(chapter),
+				}, chapter == 7);
 			},
 			getContent (chapter = 1) {
 return `第${chapter}章
