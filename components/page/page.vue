@@ -208,30 +208,30 @@
 							this.currentInfo.end = end;
 						}
 					}
-					if ( Math.floor(el.scrollTop + el.offsetHeight) == el.scrollHeight ) {//触底
-						// #ifndef H5
-						UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
-							cid: this._$id,
-							method: 'scrolltolower',
-							args: {'currentInfo': this.currentInfo}
-						})
-						// #endif
-						// #ifdef H5
-						this.scrolltolower({'currentInfo': this.currentInfo})
-						// #endif
-					}
-					if ( el.scrollTop <= 0 ) {//触顶
-						// #ifndef H5
-						UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
-							cid: this._$id,
-							method: 'scrolltoupper',
-							args: {'currentInfo': this.currentInfo}
-						})
-						// #endif
-						// #ifdef H5
-						this.scrolltoupper({'currentInfo': this.currentInfo})
-						// #endif
-					}
+				}
+				if ( Math.floor(el.scrollTop + el.offsetHeight) == el.scrollHeight ) {//触底
+					// #ifndef H5
+					UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
+						cid: this._$id,
+						method: 'scrolltolower',
+						args: {'currentInfo': this.currentInfo}
+					})
+					// #endif
+					// #ifdef H5
+					this.scrolltolower({'currentInfo': this.currentInfo})
+					// #endif
+				}
+				if ( el.scrollTop <= 0 ) {//触顶
+					// #ifndef H5
+					UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
+						cid: this._$id,
+						method: 'scrolltoupper',
+						args: {'currentInfo': this.currentInfo}
+					})
+					// #endif
+					// #ifdef H5
+					this.scrolltoupper({'currentInfo': this.currentInfo})
+					// #endif
 				}
 			},
 			//计算页面显示文字
