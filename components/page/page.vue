@@ -1,9 +1,10 @@
 <template>
-	<view class="page" :style="{'background-color': bgColor}" :id="'page' + dataId" :prop="pageProp" :change:prop="page.pagePropChange">
+	<view class="page" :id="'page' + dataId" :prop="pageProp" :change:prop="page.pagePropChange">
 		<view class="box">
-			<view class="content" :id="'content' + dataId"></view>
+			<view class="content" :id="'content' + dataId" v-if="pageType != 'scroll'"></view>
+			<view class="content" style="z-index: -999;" :id="'computed' + dataId"></view>
 		</view>
-		<view id="scroll-box" class="scroll-box" :style="{'color': color}" v-if="pageType == 'scroll'"></view>
+		<view :id="'scroll-box' + dataId" class="scroll-box" :style="{'color': color, 'padding': `0px ${slide}px`, 'background-color': bgColor}" v-if="pageType == 'scroll'"></view>
 	</view>
 </template>
 
@@ -43,26 +44,21 @@
 				type: Number | String,
 				default: 5
 			},
-			//距顶部多远时（单位px），触发 scrolltoupper  事件
-			upperThreshold: {
+			//页面左右边距（单位px）
+			slide: {
 				type: Number | String,
-				default: 0
+				default: 10
 			},
-			//距底部多远时（单位px），触发 scrolltolower 事件
-			lowerThreshold: {
-				type: Number | String,
-				default: 0
-			}
+			
 		},
 		data () {
 			return {
 				contents: [],
 				nowContent: '',
 				loading: false,//等待内容请求
-				pages: [],
-				scrollTop: 0,
 				upper: false,//文章是否到第一章节
-				lower: false//文章是否到最后章节
+				lower: false,//文章是否到最后章节
+				restart: false
 			}
 		},
 		computed: {
@@ -72,72 +68,145 @@
 					dataId: this.dataId,
 					color: this.color,
 					bgColor: this.bgColor,
+					slide: this.slide,
 					fontsize: parseInt(this.fontsize),
 					pageType: this.pageType,
-					lineHeight: parseInt(this.lineHeight)
+					lineHeight: parseInt(this.lineHeight),
+					restart: this.restart
 				};
 			}
 		},
 		methods: {
+			//初始化
 			init (data) {
+				this.restart = true;
 				this.contents = data.contents || this.contents;
-				this.nowContent = this.contents[0];
-				this.upper = data.upper || this.upper;
-				this.lower = data.lower || this.lower;
+				let index = this.indexOf(this.contents, 'chapter', data.current);
+				this.nowContent = this.contents[index > -1 ? index : 0];
+				this.upper = this.nowContent.chapter == 1;
+				this.lower = this.nowContent.isEnd;
 			},
-			scrolltoupper (e) {
-				this.upper = e.currentInfo.chapter == 1;
+			//跳转
+			change (data) {
+				this.restart = true;
+				let arr = [];
+				let len = data.contents.length;
+				for ( let i = 0; i < len; i++ ) {
+					let index = this.indexOf(this.contents, 'chapter', data.contents[i].chapter);
+					if ( index == -1 ) {
+						arr.push(data.contents[i])
+					}
+				}
+				this.contents = this.contents.concat(arr);
+				let index = this.indexOf(this.contents, 'chapter', data.current);
+				this.nowContent = this.contents[index > -1 ? index : 0];
+				this.upper = this.nowContent.chapter == 1;
+				this.lower = this.nowContent.isEnd;
+			},
+			/**
+			 * 数组查找符合条件元素并返回下标
+			 * @param {Array} arr 传入数组
+			 * @param {String} value 条件元素
+			 * @param {String} query 对比key值
+			*/
+			indexOf (arr, query, value) {
+				let len = arr.length;
+				for ( let i = 0; i < len; i++ ) {
+					if ( arr[i][query] == value ) {
+						return parseInt(i);
+					}
+				}
+				return -1;
+			},
+			getPrevContent (e) {
+				if ( this.loading ) {
+					return;
+				}
+				this.upper = e.chapter == 1;
 				if ( this.upper ) {
-					uni.showToast({
-						title: '前面已经没有了',
-						icon: 'none'
-					})
-					return;
-				}
-				if ( this.loading ) {
+					if ( e.isTop ) {
+						uni.showToast({
+							title: '前面已经没有了',
+							icon: 'none'
+						})
+					}
 					return;
 				}
 				this.loading = true
-				this.$emit('loadmore',
-				parseInt(e.currentInfo.chapter) - 1,
-				(content) => {
+				let index = this.indexOf(this.contents, 'chapter', parseInt(e.chapter) - 1);
+				if ( index > -1 ) {
 					this.loading = false;
-					this.nowContent = content;
-					this.contents.shift(content);
-				});
+					this.lower = this.contents[index].isEnd;
+					this.nowContent = this.contents[index];
+				} else {
+					this.$emit('loadmore',
+					parseInt(e.chapter) - 1,
+					(content) => {
+						this.loading = false;
+						this.lower = content.isEnd;
+						this.nowContent = content;
+						this.contents.push(content);
+					});
+				}
+				
 			},
-			scrolltolower (e) {
+			getNextContent (e) {
+				if ( this.loading ) {
+					return;
+				}
 				if ( this.lower ) {
-					uni.showToast({
-						title: '后面已经没有了',
-						icon: 'none'
-					})
-					return;
-				}
-				if ( this.loading ) {
+					if ( e.isBottom ) {
+						uni.showToast({
+							title: '后面已经没有了',
+							icon: 'none'
+						})
+					}
 					return;
 				}
 				this.loading = true
-				this.$emit('loadmore',
-				parseInt(e.currentInfo.chapter) + 1,
-				(content, isEnd = false) => {
+				let index = this.indexOf(this.contents, 'chapter', parseInt(e.chapter) + 1);
+				if ( index > -1 ) {
 					this.loading = false;
-					this.lower = isEnd;
-					this.nowContent = content;
-					this.contents.push(content);
-				});
+					this.lower = this.contents[index].isEnd;
+					this.nowContent = this.contents[index];
+				} else {
+					this.$emit('loadmore',
+					parseInt(e.chapter) + 1,
+					(content) => {
+						this.loading = false;
+						this.lower = content.isEnd;
+						this.nowContent = content;
+						this.contents.push(content);
+					});
+				}
 			},
-			getScrollHeight () {
-				return new Promise((resolve) => {
-					const query = uni.createSelectorQuery().in(this);
-					query.select('#scroll').boundingClientRect(data => {
-					  resolve(data.height)
-					}).exec();
-				})
+			//预加载上下章节
+			preload (e) {
+				if ( this.loading ) {
+					return;
+				}
+				if ( this.lower ) {
+					return;
+				}
+				let prevIndex = e.chapter > 1 ? this.indexOf(this.contents, 'chapter', parseInt(e.chapter) - 1) : 0;
+				let nextIndex = this.indexOf(this.contents, 'chapter', parseInt(e.chapter) + 1);
+				let arr = [];
+				if ( prevIndex == -1 ) arr.push(parseInt(e.chapter) - 1);
+				if ( nextIndex == -1 ) arr.push(parseInt(e.chapter) + 1);
+				if ( prevIndex == -1 || nextIndex == -1 ) {
+					this.$emit('preload', arr,
+					(contents) => {
+						this.loading = false;
+						this.contents = this.contents.concat(contents);
+					});
+				}
 			},
 			//抛出阅读页面改变事件
 			currentChange (e) {
 				this.$emit('readPageChange', e.currentInfo);
+			},
+			resetRestart () {
+				this.restart = false;
 			}
 		},
 		watch: {
@@ -153,6 +222,7 @@
 			return {
 				viewHeight: 0,
 				viewWidth: 0,
+				updownloading: false,
 				currentInfo: {
 					chapter: 0,
 					start: 0,
@@ -162,10 +232,12 @@
 		},
 		mounted () {
 			this.initDom.bind(this);
-			let scrollBox = document.getElementById('scroll-box');
-			scrollBox.onscroll = () => {
-				this.scroll(scrollBox)
-			};
+			let scrollBox = document.getElementById('scroll-box' + this.pageProp.dataId);
+			if ( scrollBox ) {
+				scrollBox.onscroll = () => {
+					this.scroll(scrollBox)
+				};
+			}
 			if ( this.pageProp.content.content ) {
 				this.currentInfo.chapter = this.pageProp.content.chapter;
 				this.currentInfo.start = this.pageProp.content.start;
@@ -209,38 +281,58 @@
 						}
 					}
 				}
-				if ( Math.floor(el.scrollTop + el.offsetHeight) == el.scrollHeight ) {//触底
-					// #ifndef H5
-					UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
-						cid: this._$id,
-						method: 'scrolltolower',
-						args: {'currentInfo': this.currentInfo}
-					})
-					// #endif
-					// #ifdef H5
-					this.scrolltolower({'currentInfo': this.currentInfo})
-					// #endif
+				if ( Math.ceil(el.scrollTop + el.offsetHeight) >= el.scrollHeight ) {//触底
+					let args = {'chapter': el.lastChild.getAttribute('chapter'), 'isBottom': Math.ceil(el.scrollTop + el.offsetHeight) >= el.scrollHeight};
+					this.scrollToLower(args);
 				}
 				if ( el.scrollTop <= 0 ) {//触顶
-					// #ifndef H5
-					UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
-						cid: this._$id,
-						method: 'scrolltoupper',
-						args: {'currentInfo': this.currentInfo}
-					})
-					// #endif
-					// #ifdef H5
-					this.scrolltoupper({'currentInfo': this.currentInfo})
-					// #endif
+					let args = {'chapter': el.firstChild.getAttribute('chapter'), 'isTop': el.scrollTop == 0};
+					this.scrollToUpper(args);
 				}
+			},
+			scrollToLower (args) {
+				// #ifndef H5
+				UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
+					cid: this._$id,
+					method: 'getNextContent',
+					args: args
+				})
+				// #endif
+				// #ifdef H5
+				this.getNextContent(args)
+				// #endif
+			},
+			scrollToUpper (args) {
+				// #ifndef H5
+				UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
+					cid: this._$id,
+					method: 'getPrevContent',
+					args: args
+				})
+				// #endif
+				// #ifdef H5
+				this.getPrevContent(args)
+				// #endif
+			},
+			preloadContent (chapter) {
+				// #ifndef H5
+				UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
+					cid: this._$id,
+					method: 'preload',
+					args: {'chapter': chapter}
+				})
+				// #endif
+				// #ifdef H5
+				this.preload({'chapter': chapter})
+				// #endif
 			},
 			//计算页面显示文字
 			computedText () {
-				let parent = document.getElementById('content' + this.pageProp.dataId);
+				let parent = document.getElementById('computed' + this.pageProp.dataId);
 				this.viewWidth = parent.offsetWidth;
 				this.viewHeight = parent.offsetHeight;
-				let myCanvas = this.createCanvas(0);
-				let context = myCanvas.getContext('2d');
+				let computedCanvas = this.createComputedCanvas(parent);
+				let context = computedCanvas.getContext('2d');
 				context.font = this.pageProp.fontsize + 'px 微软雅黑';
 				context.fillStyle = this.pageProp.color;
 				context.lineWidth = 1;
@@ -264,7 +356,7 @@
 							if ( JSON.stringify(content[i]) == JSON.stringify('\r') || JSON.stringify(content[i]) == JSON.stringify('\n') ) {
 								lastIndex = i + 1;
 								break;
-							} else if ( lineWidth >= myCanvas.width ) {
+							} else if ( lineWidth >= this.viewWidth - (2 * this.pageProp.slide) ) {
 								lastIndex = i;
 								break;
 							} else {
@@ -287,19 +379,21 @@
 			},
 			drawText (pages) {
 				if ( this.pageProp.pageType != 'scroll' ) {
+					let parent = document.getElementById('content' + this.pageProp.dataId);
 					for ( let i = 0; i < pages.length; i++ ) {
-						let myCanvas = this.createCanvas(i);
+						let myCanvas = this.createPageItem(parent, pages[i]);
 						let context = myCanvas.getContext('2d');
 						for ( let j = 0; j < pages[i].text.length; j++ ) {
+							console.log()
 							context.font = this.pageProp.fontsize + 'px 微软雅黑';
 							context.fillStyle = this.pageProp.color;
-							context.fillText(pages[i].text[j], 0, (j + 1) * (this.pageProp.fontsize + this.pageProp.lineHeight));
+							context.fillText(pages[i].text[j], this.pageProp.slide, (j + 1) * (this.pageProp.fontsize + this.pageProp.lineHeight));
 						}
 					}
 				} else {
-					let scrollBox = document.getElementById('scroll-box');
+					let scrollBox = document.getElementById('scroll-box' + this.pageProp.dataId);
 					let type = scrollBox.firstChild ? pages[0].chapter < scrollBox.firstChild.getAttribute('chapter') ? 'prev' : 'next' : 'init';
-					let scrollChapter = this.createScrollChapter(pages[0].chapter);
+					let scrollChapter = this.createScrollChapter(scrollBox, pages[0].chapter);
 					for ( let i = 0; i < pages.length; i++ ) {
 						let scrollDom = this.createScrollItem(scrollChapter, pages[i], i);
 						for ( let j = 0; j < pages[i].text.length; j++ ) {
@@ -322,36 +416,80 @@
 								scrollBox.scrollTop = offsetHeight;
 							}
 						}
+						// #ifndef H5
+						UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
+							cid: this._$id,
+							method: 'resetRestart'
+						})
+						// #endif
+						// #ifdef H5
+						this.resetRestart()
+						// #endif
+						this.scroll(scrollBox);
 					}
+					setTimeout(() => {
+						this.preloadContent(this.pageProp.content.chapter);
+					}, 500)
 				}
 			},
-			createCanvas (value) {
-				if ( document.getElementsByClassName('myCanvas')[value] ) return document.getElementsByClassName('myCanvas')[value];
-				let parent = document.getElementById('content' + this.pageProp.dataId);
+			//创建一个独立的canvas画板，用于计算文字布局
+			createComputedCanvas (el) {
+				if ( document.getElementsByClassName('computedCanvas')[0] ) return document.getElementsByClassName('computedCanvas')[0];
 				let canvasDom = document.createElement('canvas');
 				canvasDom.width = this.viewWidth;
 				canvasDom.height = this.viewHeight;
 				canvasDom.style.position = 'absolute';
 				canvasDom.style.top = 0;
 				canvasDom.style.left = 0;
-				canvasDom.style.backgroundColor = this.pageProp.bgColor;
-				canvasDom.style.zIndex = -value;
-				canvasDom.setAttribute('class', 'myCanvas');
-				parent.appendChild(canvasDom);
-				return document.getElementsByClassName('myCanvas')[value];
+				canvasDom.setAttribute('class', 'computedCanvas');
+				el.appendChild(canvasDom);
+				return document.getElementsByClassName('computedCanvas')[0];
+			},
+			createPageItem (el, info) {
+				let pageItem = document.createElement('div');
+				pageItem.style.width = '100%';
+				pageItem.style.height = '100%';
+				pageItem.style.position = 'absolute';
+				pageItem.style.top = 0;
+				pageItem.style.left = 0;
+				pageItem.style.zIndex = -(info.chapter + info.start);
+				pageItem.setAttribute('class', 'page-item page-item-chapter__' + (info.chapter + info.start));
+				pageItem.setAttribute('chapter', info.chapter);
+				pageItem.setAttribute('start', info.start);
+				pageItem.setAttribute('end', info.end);
+				let canvas = document.createElement('canvas');
+				canvas.width = this.viewWidth;
+				canvas.height = this.viewHeight;
+				canvas.style.position = 'absolute';
+				canvas.style.top = 0;
+				canvas.style.left = 0;
+				canvas.style.backgroundColor = this.pageProp.bgColor;
+				canvas.setAttribute('class', 'page-item-canvas');
+				pageItem.appendChild(canvas);
+				let pageBg = document.createElement('div');
+				pageBg.style.width = '100%';
+				pageBg.style.height = '100%';
+				pageBg.style.position = 'absolute';
+				pageBg.style.top = 0;
+				pageBg.style.left = 0;
+				pageBg.style.transform = 'translateX(100%)';
+				pageBg.style.backgroundColor = this.pageProp.bgColor;
+				pageBg.setAttribute('class', 'page-item-bg');
+				pageItem.appendChild(pageBg);
+				el.appendChild(pageItem);
+				return document.getElementsByClassName('page-item-chapter__' + (info.chapter + info.start))[0].getElementsByClassName('page-item-canvas')[0];
 			},
 			//创建滚动布局下的章节盒子
-			createScrollChapter (chapter) {
-				let parent = document.getElementById('scroll-box');
+			createScrollChapter (el, chapter) {
 				let divDom = document.createElement('div');
 				divDom.style.width = '100%';
 				divDom.setAttribute('class', 'scroll-chapter-box scroll-box-chapter__' + chapter);
 				divDom.setAttribute('chapter', chapter);
-				if ( chapter > (parent.lastChild ? parent.lastChild.getAttribute('chapter') : 0) ) {
-					parent.appendChild(divDom);
+				if ( chapter > (el.lastChild ? el.lastChild.getAttribute('chapter') : 0) ) {
+					el.appendChild(divDom);
 				}
-				if ( chapter < (parent.firstChild ? parent.firstChild.getAttribute('chapter') : 0) ) {
-					parent.insertBefore(divDom, parent.firstChild);
+				if ( chapter < (el.firstChild ? el.firstChild.getAttribute('chapter') : 0) ) {
+					el.insertBefore(divDom, el.firstChild);
 				}
 				return document.getElementsByClassName('scroll-box-chapter__' + chapter)[0]
 			},
@@ -398,21 +536,39 @@
 				if ( newValue.content != oldValue.content ) {//内容改变
 					this.contentChange(newValue.content, oldValue.content);
 				}
+				if ( newValue.restart != oldValue.restart ) {//内容改变
+					this.restartChange(newValue.restart, oldValue.restart);
+				}
 			},
 			//重绘页面
 			restartDrawText () {
 				if ( this.pageProp.pageType == 'scroll' ) {
-					document.getElementById('scroll-box').innerHTML = '';
+					document.getElementById('scroll-box' + this.pageProp.dataId).innerHTML = '';
+					this.computedText();
+				} else {
+					document.getElementById('content' + this.pageProp.dataId).innerHTML = '';
 					this.computedText();
 				}
 			},
 			//文本内容改变时
 			contentChange (newValue, oldValue) {
+				if ( this.pageProp.restart ) {
+					return;
+				}
 				if ( !this.currentInfo.chapter ) {
 					this.currentInfo.chapter = newValue.chapter;
 					this.currentInfo.start = newValue.start;
 				}
-				this.computedText();
+				if ( newValue?.content ) {
+					this.computedText();
+				}
+			},
+			restartChange (newValue) {
+				if ( newValue ) {
+					this.currentInfo.chapter = this.pageProp.content.chapter;
+					this.currentInfo.start = this.pageProp.content.start;
+					this.restartDrawText();
+				}
 			}
 		}
 	}
@@ -433,33 +589,27 @@
 	}
 	.scroll-box {
 		position: absolute;
-		left: 20rpx;
-		right: 20rpx;
+		left: 0;
+		right: 0;
 		top: 0;
-		bottom: 20rpx;
-		overflow-anchor: auto;
-		overflow-y: auto;
-	}
-	.scroll-item {
-		width: 100%;
-		padding: 0 20rpx;
+		bottom: 0;
 		box-sizing: border-box;
-	}
-	.scroll-text {
-		white-space: pre-wrap;
+		/* overflow-anchor: auto; */
+		overflow-y: auto;
 	}
 	.box {
 		width: 100%;
 		height: 100%;
-		padding: 0 20rpx 20rpx 20rpx;
 		box-sizing: border-box;
 		position: absolute;
 		left: 0;
 		top: 0;
 	}
 	.content {
-		position: relative;
+		position: absolute;
+		left: 0;
+		top: 0;
 		width: 100%;
-		min-height: 100%;
+		height: 100%;
 	}
 </style>
