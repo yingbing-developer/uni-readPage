@@ -604,6 +604,7 @@
 		position: absolute;
 		left: 0;
 		top: 0;
+		overflow: hidden;
 	}
 	.content {
 		position: absolute;
