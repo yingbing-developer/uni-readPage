@@ -1,7 +1,12 @@
 <template>
 	<view class="page" :id="'page' + dataId" :prop="pageProp" :change:prop="page.pagePropChange">
 		<view class="box">
-			<view class="content" :id="'content' + dataId" v-if="pageType != 'scroll'"></view>
+			<view class="content"
+			:id="'content' + dataId"
+			v-if="pageType != 'scroll'"
+			@touchstart="page.pageTouchstart"
+			@touchmove="page.pageTouchmove"
+			@touchend="page.pageTouchend"></view>
 			<view class="content" style="z-index: -999;" :id="'computed' + dataId"></view>
 		</view>
 		<view :id="'scroll-box' + dataId" class="scroll-box" :style="{'color': color, 'padding': `0px ${slide}px`, 'background-color': bgColor}" v-if="pageType == 'scroll'"></view>
@@ -227,7 +232,12 @@
 					chapter: 0,
 					start: 0,
 					end: 0
-				}
+				},
+				touchstart: {
+					x: 0,
+					y: 0
+				},
+				isStart: false
 			}
 		},
 		mounted () {
@@ -384,7 +394,6 @@
 						let myCanvas = this.createPageItem(parent, pages[i]);
 						let context = myCanvas.getContext('2d');
 						for ( let j = 0; j < pages[i].text.length; j++ ) {
-							console.log()
 							context.font = this.pageProp.fontsize + 'px 微软雅黑';
 							context.fillStyle = this.pageProp.color;
 							context.fillText(pages[i].text[j], this.pageProp.slide, (j + 1) * (this.pageProp.fontsize + this.pageProp.lineHeight));
@@ -449,11 +458,17 @@
 				let pageItem = document.createElement('div');
 				pageItem.style.width = '100%';
 				pageItem.style.height = '100%';
+				pageItem.style.overflow = 'hidden';
+				pageItem.style.boxShadow = '5px 0 20px rgba(0,0,0,0.2)';
 				pageItem.style.position = 'absolute';
 				pageItem.style.top = 0;
 				pageItem.style.left = 0;
 				pageItem.style.zIndex = -(info.chapter + info.start);
-				pageItem.setAttribute('class', 'page-item page-item-chapter__' + (info.chapter + info.start));
+				if ( this.currentInfo.start >= info.start && this.currentInfo.start <= info.end && this.currentInfo.chapter == info.chapter ) {
+					pageItem.setAttribute('class', 'page-item page-item-actived page-item-chapter__' + (info.chapter + info.start));
+				} else {
+					pageItem.setAttribute('class', 'page-item page-item-chapter__' + (info.chapter + info.start));
+				}
 				pageItem.setAttribute('chapter', info.chapter);
 				pageItem.setAttribute('start', info.start);
 				pageItem.setAttribute('end', info.end);
@@ -468,14 +483,25 @@
 				pageItem.appendChild(canvas);
 				let pageBg = document.createElement('div');
 				pageBg.style.width = '100%';
-				pageBg.style.height = '100%';
+				pageBg.style.height = '105%';
+				pageBg.style.boxShadow = '-5px 0 20px rgba(0,0,0,0.2)';
 				pageBg.style.position = 'absolute';
-				pageBg.style.top = 0;
-				pageBg.style.left = 0;
-				pageBg.style.transform = 'translateX(100%)';
+				pageBg.style.top = '50%';
+				pageBg.style.left = '100%';
 				pageBg.style.backgroundColor = this.pageProp.bgColor;
 				pageBg.setAttribute('class', 'page-item-bg');
 				pageItem.appendChild(pageBg);
+				let pageShadow = document.createElement('div');
+				pageShadow.style.width = '0';
+				pageShadow.style.height = '100%';
+				pageShadow.style.position = 'absolute';
+				pageShadow.style.top = 0;
+				pageShadow.style.right = 0;
+				pageShadow.style.zIndex = '9';
+				pageShadow.style.backgroundColor = 'rgba(0,0,0,0.5)';
+				pageShadow.style.filter = 'blur(20px)';
+				pageShadow.setAttribute('class', 'page-item-shadow');
+				pageItem.appendChild(pageShadow);
 				el.appendChild(pageItem);
 				return document.getElementsByClassName('page-item-chapter__' + (info.chapter + info.start))[0].getElementsByClassName('page-item-canvas')[0];
 			},
@@ -524,6 +550,52 @@
 			restartDrawText (value) {
 				this.clearCanvas();
 				this.drawText();
+			},
+			pageTouchstart (e) {
+				if ( e.touches.length == 1 ) {
+					let touch = e.touches[0];
+					this.touchstart.x = touch.pageX;
+					this.touchstart.y = touch.pageY;
+					this.isStart = true;
+				}
+			},
+			pageTouchmove (e) {
+				if ( e.touches.length == 1 ) {
+					if ( this.isStart ) {
+						let touch = e.touches[0];
+						let moveX = 0;
+						let rotateZ = 0;
+						if ( this.touchstart.x > (this.viewWidth / 4) * 3) {
+							moveX = Math.abs(touch.pageX - this.touchstart.x);
+							let height = this.viewHeight / 2;
+							let maxDeg = height / 24;
+							rotateZ = (touch.pageY - height) / maxDeg;
+						}
+						this.pageAnimation(moveX, rotateZ);
+					}
+				}
+			},
+			pageAnimation (moveX, rotateZ) {
+				let boxs = document.getElementsByClassName('page-item');
+				let box = '';
+				for ( let i = 0; i < boxs.length; i++ ) {
+					if ( boxs[i].getAttribute('class').indexOf('page-item-actived') > 1 ) {
+						box = boxs[i];
+						break;
+					}
+				}
+				let content = box.getElementsByClassName('page-item-canvas')[0];
+				let bg = box.getElementsByClassName('page-item-bg')[0];
+				let shadow = box.getElementsByClassName('page-item-shadow')[0];
+				box.style.transform = `translateX(${-moveX}px)`;
+				content.style.transform = `translateX(${moveX}px)`;
+				bg.style.transform = `translate(${-moveX}px, -50%) rotateZ(${rotateZ}deg)`;
+				shadow.style.width = moveX > 30 ? '30px' : moveX + 'px';
+			},
+			pageTouchend (e) {
+				if ( e.touches.length > 1 ) {
+					return;
+				}
 			},
 			//参数改变
 			pagePropChange (newValue, oldValue) {
