@@ -9,7 +9,7 @@
 			@touchend="page.pageTouchend"></view>
 			<view class="content" style="z-index: -999;" :id="'computed' + dataId"></view>
 		</view>
-		<view :id="'scroll-box' + dataId" class="scroll-box" :style="{'color': color, 'padding': `0px ${slide}px`, 'background-color': bgColor}" v-if="pageType == 'scroll'"></view>
+		<view :id="'scroll-box' + dataId" class="scroll-box" :style="{'color': color, 'padding': `0px ${slide}px`, 'background': bgColor}" v-if="pageType == 'scroll'"></view>
 	</view>
 </template>
 
@@ -54,6 +54,16 @@
 				type: Number | String,
 				default: 10
 			},
+			//页面上边距（单位px）
+			topGap: {
+				type: Number | String,
+				default: 10
+			},
+			//页面下边距（单位px）
+			bottomGap: {
+				type: Number | String,
+				default: 10
+			}
 			
 		},
 		data () {
@@ -74,8 +84,10 @@
 					color: this.color,
 					bgColor: this.bgColor,
 					slide: this.slide,
+					topGap: parseInt(this.topGap),
+					bottomGap: parseInt(this.bottomGap),
 					fontsize: parseInt(this.fontsize),
-					pageType: this.pageType,
+					pageType: this.pageType || 'none',
 					lineHeight: parseInt(this.lineHeight),
 					restart: this.restart
 				};
@@ -237,7 +249,11 @@
 					x: 0,
 					y: 0
 				},
-				isStart: false
+				pageWating: false,//等待翻页
+				moveX: 0,//翻页距离
+				pageEl: '',//翻页对象
+				pageDirection: 'next',//翻页方向
+				touchTime: 0//触摸屏幕时间
 			}
 		},
 		mounted () {
@@ -260,6 +276,7 @@
 				// 观测更新的数据在 view 层可以直接访问到
 				myPageDom.setOption(this.pageProp);
 			},
+			//滚动处理事件（滚动模式下有效）
 			scroll (el) {
 				let scrollItems = document.getElementsByClassName('scroll-item');
 				let scrollBottom = el.scrollTop + el.offsetHeight;
@@ -357,7 +374,7 @@
 						end: 0,
 						text: []
 					})
-					while ( pageHeight <= this.viewHeight ) {
+					while ( pageHeight <= this.viewHeight - this.pageProp.topGap - this.pageProp.bottomGap ) {
 						strs.push('');
 						let content = this.pageProp.content.content;
 						let lineWidth = 0;
@@ -387,16 +404,27 @@
 				}
 				dowhile();
 			},
+			//绘制文字到页面上
 			drawText (pages) {
 				if ( this.pageProp.pageType != 'scroll' ) {
 					let parent = document.getElementById('content' + this.pageProp.dataId);
 					for ( let i = 0; i < pages.length; i++ ) {
-						let myCanvas = this.createPageItem(parent, pages[i]);
-						let context = myCanvas.getContext('2d');
+						let pageItem = this.createPageItem(parent, pages[i]);
+						let el = {
+							el: pageItem,
+							content: pageItem.getElementsByClassName('page-item-canvas')[0],
+							bg: pageItem.getElementsByClassName('page-item-bg')[0],
+							shadow: pageItem.getElementsByClassName('page-item-shadow')[0]
+						}
+						let context = el.content.getContext('2d');
+						//设置阅读位置前面的页面变成已经翻页的状态
+						if ( pages[i].chapter < this.currentInfo.chapter || (pages[i].chapter == this.currentInfo.chapter && this.currentInfo.start > pages[i].end) ) {
+							this.pageAnimation(this.viewWidth, 0, el);
+						}
 						for ( let j = 0; j < pages[i].text.length; j++ ) {
 							context.font = this.pageProp.fontsize + 'px 微软雅黑';
 							context.fillStyle = this.pageProp.color;
-							context.fillText(pages[i].text[j], this.pageProp.slide, (j + 1) * (this.pageProp.fontsize + this.pageProp.lineHeight));
+							context.fillText(pages[i].text[j], this.pageProp.slide, ((j + 1) * (this.pageProp.fontsize + this.pageProp.lineHeight)) + this.pageProp.topGap);
 						}
 					}
 				} else {
@@ -454,12 +482,12 @@
 				el.appendChild(canvasDom);
 				return document.getElementsByClassName('computedCanvas')[0];
 			},
+			//创建翻页的文章盒子
 			createPageItem (el, info) {
 				let pageItem = document.createElement('div');
 				pageItem.style.width = '100%';
 				pageItem.style.height = '100%';
 				pageItem.style.overflow = 'hidden';
-				pageItem.style.boxShadow = '5px 0 20px rgba(0,0,0,0.2)';
 				pageItem.style.position = 'absolute';
 				pageItem.style.top = 0;
 				pageItem.style.left = 0;
@@ -478,17 +506,18 @@
 				canvas.style.position = 'absolute';
 				canvas.style.top = 0;
 				canvas.style.left = 0;
-				canvas.style.backgroundColor = this.pageProp.bgColor;
+				canvas.style.background = this.pageProp.bgColor;
 				canvas.setAttribute('class', 'page-item-canvas');
 				pageItem.appendChild(canvas);
 				let pageBg = document.createElement('div');
 				pageBg.style.width = '100%';
-				pageBg.style.height = '105%';
+				pageBg.style.height = Math.sqrt(Math.pow(this.viewHeight, 2) + Math.pow(this.viewWidth, 2)) + 'px';
 				pageBg.style.boxShadow = '-5px 0 20px rgba(0,0,0,0.2)';
 				pageBg.style.position = 'absolute';
 				pageBg.style.top = '50%';
 				pageBg.style.left = '100%';
-				pageBg.style.backgroundColor = this.pageProp.bgColor;
+				pageBg.style.transform = 'translateY(-50%)';
+				pageBg.style.background = this.pageProp.bgColor;
 				pageBg.setAttribute('class', 'page-item-bg');
 				pageItem.appendChild(pageBg);
 				let pageShadow = document.createElement('div');
@@ -503,7 +532,7 @@
 				pageShadow.setAttribute('class', 'page-item-shadow');
 				pageItem.appendChild(pageShadow);
 				el.appendChild(pageItem);
-				return document.getElementsByClassName('page-item-chapter__' + (info.chapter + info.start))[0].getElementsByClassName('page-item-canvas')[0];
+				return document.getElementsByClassName('page-item-chapter__' + (info.chapter + info.start))[0];
 			},
 			//创建滚动布局下的章节盒子
 			createScrollChapter (el, chapter) {
@@ -540,69 +569,164 @@
 				pDom.innerHTML = text || ' ';
 				el.appendChild(pDom);
 			},
-			//清除画布
-			clearCanvas () {
-				let myCanvas = document.getElementById('myCanvas' + this.pageProp.dataId);
-				let context = myCanvas.getContext('2d');
-				context.clearRect(0, 0, myCanvas.width, myCanvas.height);
-			},
-			//重绘制文字
-			restartDrawText (value) {
-				this.clearCanvas();
-				this.drawText();
-			},
 			pageTouchstart (e) {
+				if ( this.pageWating ) {
+					return;
+				}
 				if ( e.touches.length == 1 ) {
+					this.touchTimer = setInterval(() => {
+						this.touchTime += 50;
+					}, 50)
 					let touch = e.touches[0];
 					this.touchstart.x = touch.pageX;
 					this.touchstart.y = touch.pageY;
-					this.isStart = true;
+					if ( this.touchstart.x > (this.viewWidth / 4) * 3 ) {
+						this.pageEl = this.getPageActived(0);
+						this.pageDirection = 'next'
+					}
+					if ( this.touchstart.x < (this.viewWidth / 4) ) {
+						this.pageEl = this.getPageActived(-1);
+						this.pageDirection = 'prev'
+					}
 				}
 			},
 			pageTouchmove (e) {
-				if ( e.touches.length == 1 ) {
-					if ( this.isStart ) {
-						let touch = e.touches[0];
-						let moveX = 0;
-						let rotateZ = 0;
-						if ( this.touchstart.x > (this.viewWidth / 4) * 3) {
-							moveX = Math.abs(touch.pageX - this.touchstart.x);
-							let height = this.viewHeight / 2;
-							let maxDeg = height / 24;
-							rotateZ = (touch.pageY - height) / maxDeg;
-						}
-						this.pageAnimation(moveX, rotateZ);
-					}
-				}
-			},
-			pageAnimation (moveX, rotateZ) {
-				let boxs = document.getElementsByClassName('page-item');
-				let box = '';
-				for ( let i = 0; i < boxs.length; i++ ) {
-					if ( boxs[i].getAttribute('class').indexOf('page-item-actived') > 1 ) {
-						box = boxs[i];
-						break;
-					}
-				}
-				let content = box.getElementsByClassName('page-item-canvas')[0];
-				let bg = box.getElementsByClassName('page-item-bg')[0];
-				let shadow = box.getElementsByClassName('page-item-shadow')[0];
-				box.style.transform = `translateX(${-moveX}px)`;
-				content.style.transform = `translateX(${moveX}px)`;
-				bg.style.transform = `translate(${-moveX}px, -50%) rotateZ(${rotateZ}deg)`;
-				shadow.style.width = moveX > 30 ? '30px' : moveX + 'px';
-			},
-			pageTouchend (e) {
-				if ( e.touches.length > 1 ) {
+				if ( this.pageWating || (this.pageProp.pageType != 'real' && this.pageProp.pageType != 'cover') ) {
 					return;
 				}
+				if ( e.touches.length == 1 ) {
+					if ( this.pageEl ) {
+						let touch = e.touches[0];
+						let height = this.viewHeight / 2;
+						let maxDeg = height / 5;
+						let rotateZ = this.pageDirection == 'next' ? ((touch.pageY - height) / maxDeg) : -((touch.pageY - height) / maxDeg);
+						if ( this.touchstart.x > (this.viewWidth / 4) * 3 || this.touchstart.x < (this.viewWidth / 4) ) {
+							this.moveX = touch.pageX - this.touchstart.x;
+						}
+						this.pageAnimation(this.moveX, rotateZ);
+					}
+				}
+			},
+			pageTouchend (e) {
+				clearTimeout(this.touchTimer);
+				if ( this.pageWating ) {
+					return;
+				}
+				if ( this.pageEl ) {
+					this.pageWating = true;
+					if ( this.touchTime <= 200 ) {
+						let duration = (this.pageProp.pageType == 'real' || this.pageProp.pageType == 'cover') ? 1000 : 0
+						let value = this.pageDirection == 'next' ? 1 : -1;
+						this.pageDuration(duration);
+						this.$nextTick(() => {
+							this.pageAnimation(-value * this.viewWidth);
+							setTimeout(() => {
+								this.changePageActived(value);
+								this.resetPageMove();
+							}, duration + 50)
+						})
+					} else {
+						let duration = (this.pageProp.pageType == 'real' || this.pageProp.pageType == 'cover') ? 500 : 0
+						if ( Math.abs(this.moveX) >= this.viewWidth / 2.5 ) {
+							let value = this.pageDirection == 'next' ? 1 : -1;
+							this.pageDuration(duration);
+							this.$nextTick(() => {
+								this.pageAnimation(-value * this.viewWidth);
+								setTimeout(() => {
+									this.changePageActived(value);
+									this.resetPageMove();
+								}, duration + 50)
+							})
+						} else {
+							this.pageDuration(duration);
+							this.$nextTick(() => {
+								this.pageAnimation(0);
+								setTimeout(() => {
+									this.resetPageMove();
+								}, duration + 50)
+							})
+						}
+					}
+				}
+			},
+			//重置翻页数据
+			resetPageMove () {
+				this.pageDuration(0);
+				this.isStart = false;
+				this.pageWating = false;
+				this.moveX = 0;
+				this.pageEl = '';
+				this.pageDirection = 'next';
+				this.touchTime = 0;
+				this.touchstart.x = 0;
+				this.touchstart.y = 0;
+			},
+			//设置翻页对象动画效果
+			pageAnimation (moveX, rotateZ = 0, el) {
+				let lateX = this.pageDirection == 'next' ? moveX : moveX - this.viewWidth;
+				let pageEl = el || this.pageEl;
+				pageEl.el.style.transform = `translateX(${lateX}px)`;
+				pageEl.content.style.transform = this.pageProp.pageType == 'real' ? `translateX(${-lateX}px)` : pageEl.content.style.transform;
+				pageEl.bg.style.transform = this.pageProp.pageType == 'real' ? `translate(${lateX}px, -50%) rotateZ(${rotateZ}deg)` : pageEl.bg.style.transform;
+				pageEl.shadow.style.width = this.pageProp.pageType == 'real' ? Math.abs(lateX) > 30 ? '30px' : Math.abs(lateX) + 'px' : 0;
+			},
+			//设置翻页对象动画时间
+			pageDuration (duration) {
+				this.pageEl.el.style.transition = duration > 0 ? 'transform ' + duration + 'ms' : '';
+				this.pageEl.content.style.transition = duration > 0 ? 'transform ' + duration + 'ms' : '';
+				this.pageEl.bg.style.transition = duration > 0 ? 'transform ' + duration + 'ms' : '';
+				this.pageEl.shadow.style.transition = duration > 0 ? 'width ' + duration + 'ms' : '';
+			},
+			//获取翻页对象
+			getPageActived (value = 0) {
+				let boxs = document.getElementsByClassName('page-item');
+				for ( let i = 0; i < boxs.length; i++ ) {
+					if ( boxs[i].getAttribute('class').indexOf('page-item-actived') > 1 ) {
+						if ( boxs[i + value + 1] && boxs[i + value] ) {
+							return {
+								el: boxs[i + value],
+								content: boxs[i + value].getElementsByClassName('page-item-canvas')[0],
+								bg: boxs[i + value].getElementsByClassName('page-item-bg')[0],
+								shadow: boxs[i + value].getElementsByClassName('page-item-shadow')[0]
+							};
+						}
+					}
+				}
+				return false;
+			},
+			changePageActived (value) {
+				let boxs = document.getElementsByClassName('page-item');
+				let index = -1
+				for ( let i = 0; i < boxs.length; i++ ) {
+					if ( boxs[i].getAttribute('class').indexOf('page-item-actived') > 1 ) {
+						index = i;
+					}
+				}
+				boxs[index].setAttribute('class', boxs[index].getAttribute('class').replace('page-item-actived', ''));
+				boxs[index + value].setAttribute('class', boxs[index + value].getAttribute('class') + ' page-item-actived');
+				this.currentInfo.chapter = boxs[index + value].getAttribute('chapter');
+				this.currentInfo.start = boxs[index + value].getAttribute('start');
+				this.currentInfo.end = boxs[index + value].getAttribute('end');
 			},
 			//参数改变
 			pagePropChange (newValue, oldValue) {
 				if ( newValue.fontsize != oldValue.fontsize ) {//字体大小改变
 					this.restartDrawText();
 				}
+				if ( newValue.lineHeight != oldValue.lineHeight ) {//字体行高改变
+					this.restartDrawText();
+				}
 				if ( newValue.color != oldValue.color ) {//字体颜色改变
+					if ( this.pageProp.pageType != 'scroll' ) {
+						this.restartDrawText();
+					}
+				}
+				if ( newValue.bgColor != oldValue.bgColor && newValue.color == oldValue.color ) {//背景颜色改变
+					if ( this.pageProp.pageType != 'scroll' ) {
+						this.resetBgColor(newValue.bgColor);
+					}
+				}
+				if ( newValue.pageType != oldValue.pageType ) {//翻页模式改变
 					this.restartDrawText();
 				}
 				if ( newValue.content != oldValue.content ) {//内容改变
@@ -620,6 +744,14 @@
 				} else {
 					document.getElementById('content' + this.pageProp.dataId).innerHTML = '';
 					this.computedText();
+				}
+			},
+			//重置背景色
+			resetBgColor (bgColor) {
+				let pageItems = document.getElementsByClassName('page-item');
+				for ( let i = 0; i < pageItems.length; i++ ) {
+					pageItems[i].getElementsByClassName('page-item-canvas').style.background = bgColor;
+					pageItems[i].getElementsByClassName('page-item-bg').style.background = bgColor;
 				}
 			},
 			//文本内容改变时

@@ -1,6 +1,6 @@
 <template>
 	<view class="scroll" @tap="changeChapter">
-		<page ref="page" pageType="page" :fontsize="fontsize" :color="color" @loadmore="loadmoreContent" @preload="preloadContent"></page>
+		<page ref="page" pageType="real" :fontsize="fontsize" :color="color" @loadmore="loadmoreContent" @preload="preloadContent"></page>
 	</view>
 </template>
 
@@ -34,7 +34,7 @@
 				isEnd: false
 			},{
 				chapter: 3,
-				start: 0,
+				start: 800,
 				content: this.getContent(3),
 				isEnd: false
 			}]
