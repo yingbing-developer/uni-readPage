@@ -1,6 +1,15 @@
 <template>
-	<view class="scroll" @tap="changeChapter">
-		<page ref="page" pageType="real" :fontsize="fontsize" :color="color" @loadmore="loadmoreContent" @preload="preloadContent"></page>
+	<view class="scroll">
+		<page
+		ref="page"
+		:page-type="pageType"
+		:font-size="fontsize"
+		:line-height="lineHeight"
+		:color="color"
+		:bg-color="bgColor"
+		@loadmore="loadmoreContent"
+		@preload="preloadContent"
+		@currentChange="currentChange"></page>
 	</view>
 </template>
 
@@ -11,9 +20,12 @@
 			return {
 				pages: [],
 				list: [],
+				pageType: 'real',
 				scrollTop: 400,
 				fontsize: 20,
-				color: '#333'
+				lineHeight: 20,
+				color: '#333',
+				bgColor: '#fcd281'
 			}
 		},
 		onLoad() {
@@ -24,7 +36,7 @@
 		onReady() {
 			let contents = [{
 				chapter: 1,
-				start: 0,
+				start: 100,
 				content: this.getContent(1),
 				isEnd: false
 			},{
@@ -34,7 +46,7 @@
 				isEnd: false
 			},{
 				chapter: 3,
-				start: 800,
+				start: 100,
 				content: this.getContent(3),
 				isEnd: false
 			}]
@@ -45,11 +57,24 @@
 			})
 		},
 		methods: {
+			currentChange (e) {
+				console.log(e);
+			},
 			addFontsize () {
 				this.fontsize += 4;
 			},
-			changeColor () {
-				this.color = 'red';
+			changePageType () {
+				this.pageType = this.pageType == 'real' ? 'scroll' : 'real';
+			},
+			reduceFontSize () {
+				this.fontsize -= 4;
+			},
+			changeLineHeight () {
+				this.lineHeight += 4;
+			},
+			changeSkin () {
+				this.color = '#f5f5f5';
+				this.bgColor = '#999';
 			},
 			changeChapter () {
 				let contents = [{
@@ -66,7 +91,7 @@
 					chapter: 5,
 					start: 0,
 					content: this.getContent(5),
-					isEnd: true
+					isEnd: false
 				}]
 				const { page } = this.$refs;
 				page.change({
@@ -75,6 +100,7 @@
 				})
 			},
 			loadmoreContent (chapter, next) {
+				console.log(chapter);
 				next({
 					chapter: chapter,
 					start: 0,
