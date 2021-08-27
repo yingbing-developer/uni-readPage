@@ -44,7 +44,7 @@
 			//字体大小（单位px）
 			fontSize: {
 				type: String | Number,
-				default: 20
+				default: 15
 			},
 			//背景颜色
 			bgColor: {
@@ -59,12 +59,12 @@
 			//行间距（单位px）
 			lineHeight: {
 				type: Number | String,
-				default: 5
+				default: 15
 			},
 			//页面左右边距（单位px）
 			slide: {
 				type: Number | String,
-				default: 10
+				default: 40
 			},
 			//页面上边距（单位px）
 			topGap: {
@@ -81,11 +81,9 @@
 			return {
 				contents: [],
 				loading: false,//等待内容请求
-				upper: false,//文章是否到第一章节
-				lower: false,//文章是否到最后章节
+				upper: false,//文章是否到最前面
+				lower: false,//文章是否到最后面
 				restart: false,//是否重绘页面
-				isNewChapter: false,//是否绘制新章节
-				newChapter: -1,//需要绘制的新章节
 				preLoading: false//等待预加载请求
 			}
 		},
@@ -96,157 +94,32 @@
 					dataId: this.dataId,
 					color: this.color,
 					bgColor: this.bgColor,
-					slide: this.slide,
-					topGap: parseInt(this.topGap),
-					bottomGap: parseInt(this.bottomGap),
-					fontSize: parseInt(this.fontSize),
+					slide: this.slide > 0 ? parseInt(this.slide) : 0,
+					topGap: this.topGap > 0 ? parseInt(this.topGap) : 0,
+					bottomGap: this.bottomGap > 0 ? parseInt(this.bottomGap) : 0,
+					fontSize: this.fontSize >= 12 ? parseInt(this.fontSize) : 12,//字体大小最小只能到12px，因为谷歌浏览器最小只支持12px
 					pageType: this.pageType || 'none',
-					lineHeight: parseInt(this.lineHeight),
-					restart: this.restart,
-					isNewChapter: this.isNewChapter,
-					newChapter: this.newChapter
+					lineHeight: this.lineHeight >= 5 ? parseInt(this.lineHeight) : 5,
+					restart: this.restart
 				};
 			}
 		},
 		methods: {
 			//初始化
 			init (data) {
-				this.restart = true;
 				this.contents = data.contents || this.contents;
-				let index = this.indexOf(this.contents, 'chapter', data.current);
-				this.newChapter = data.current;
-				// this.nowContent = this.contents[index > -1 ? index : 0];
-				this.upper = this.contents[index > -1 ? index : 0].chapter == 1;
-				this.lower = this.contents[index > -1 ? index : 0].isEnd;
+				this.restart = true;
 			},
 			//跳转
 			change (data) {
+				this.contents[0].start = data.position;
 				this.restart = true;
-				let arr = [];
-				let len = data.contents.length;
-				for ( let i = 0; i < len; i++ ) {
-					let index = this.indexOf(this.contents, 'chapter', data.contents[i].chapter);
-					if ( index == -1 ) {
-						arr.push(data.contents[i])
-					}
-				}
-				this.contents = this.contents.concat(arr);
-				let index = this.indexOf(this.contents, 'chapter', data.current);
-				this.newChapter = data.current;
-				// this.nowContent = this.contents[index > -1 ? index : 0];
-				this.upper = this.contents[index > -1 ? index : 0].chapter == 1;
-				this.lower = this.contents[index > -1 ? index : 0].isEnd;
 			},
-			/**
-			 * 数组查找符合条件元素并返回下标
-			 * @param {Array} arr 传入数组
-			 * @param {String} value 条件元素
-			 * @param {String} query 对比key值
-			*/
-			indexOf (arr, query, value) {
-				let len = arr.length;
-				for ( let i = 0; i < len; i++ ) {
-					if ( arr[i][query] == value ) {
-						return parseInt(i);
-					}
-				}
-				return -1;
-			},
-			getPrevContent (e) {
-				if ( this.loading ) {
-					return;
-				}
-				this.upper = e.chapter == 1;
-				if ( this.upper ) {
-					if ( e.isTop ) {
-						uni.showToast({
-							title: '前面已经没有了',
-							icon: 'none'
-						})
-					}
-					return;
-				}
-				this.loading = true
-				let index = this.indexOf(this.contents, 'chapter', parseInt(e.chapter) - 1);
-				if ( index == -1 ) {
-					this.$emit('loadmore',
-					parseInt(e.chapter) - 1,
-					(content) => {
-						this.loading = false;
-						this.lower = content.isEnd;
-						this.contents.push(content);
-						this.newChapter = content.chapter;
-						this.isNewChapter = true;
-					},
-					() => {
-						this.loading = false;
-					});
-				} else {
-					this.newChapter = parseInt(e.chapter) - 1;
-					this.isNewChapter = true;
-					this.lower = this.contents[index].isEnd;
-					this.loading = false;
-				}
-			},
-			getNextContent (e) {
-				if ( this.loading ) {
-					return;
-				}
-				if ( this.lower ) {
-					if ( e.isBottom ) {
-						uni.showToast({
-							title: '后面已经没有了',
-							icon: 'none'
-						})
-					}
-					return;
-				}
-				this.loading = true
-				let index = this.indexOf(this.contents, 'chapter', parseInt(e.chapter) + 1);
-				if ( index == -1 ) {
-					this.$emit('loadmore',
-					parseInt(e.chapter) + 1,
-					(content) => {
-						this.loading = false;
-						this.lower = content.isEnd;
-						this.contents.push(content);
-						this.newChapter = content.chapter;
-						this.isNewChapter = true;
-					},
-					() => {
-						this.loading = false;
-					});
-				} else {
-					this.newChapter = parseInt(e.chapter) + 1;
-					this.isNewChapter = true;
-					this.lower = this.contents[index].isEnd;
-					this.loading = false;
-				}
-			},
-			//预加载上下章节
-			preload (e) {
-				if ( this.preLoading ) {
-					return;
-				}
-				if ( this.lower ) {
-					return;
-				}
-				this.preLoading = true;
-				let prevIndex = e.chapter > 1 ? this.indexOf(this.contents, 'chapter', parseInt(e.chapter) - 1) : 0;
-				let nextIndex = this.indexOf(this.contents, 'chapter', parseInt(e.chapter) + 1);
-				let arr = [];
-				if ( prevIndex == -1 ) arr.push(parseInt(e.chapter) - 1);
-				if ( nextIndex == -1 ) arr.push(parseInt(e.chapter) + 1);
-				if ( prevIndex == -1 || nextIndex == -1 ) {
-					this.$emit('preload', arr,
-					(contents) => {
-						this.preLoading = false;
-						this.contents = this.contents.concat(contents);
-					},
-					() => {
-						this.preLoading = false;
-					});
-				}
+			showToast (e) {
+				uni.showToast({
+					title: e.title,
+					icon: 'none'
+				})
 			},
 			//抛出阅读页面改变事件
 			currentChange (e) {
@@ -266,14 +139,13 @@
 	export default {
 		data () {
 			return {
-				pages: [],
 				viewHeight: 0,
 				viewWidth: 0,
 				updownloading: false,
 				currentInfo: {
-					chapter: 0,
 					start: 0,
-					end: 0
+					end: 0,
+					text: ''
 				},
 				touchstart: {
 					x: 0,
@@ -288,7 +160,6 @@
 		},
 		mounted () {
 			this.initDom.bind(this);
-			this.bindScrollEvent();
 		},
 		methods: {
 			initDom () {
@@ -296,49 +167,58 @@
 				// 观测更新的数据在 view 层可以直接访问到
 				myPageDom.setOption(this.pageProp);
 			},
-			//绑定滚动事件
+			//绑定滚动事件（滚动模式下有效）
 			bindScrollEvent () {
 				let scrollBox = document.getElementById('scroll-box' + this.pageProp.dataId);
 				if ( scrollBox ) {
 					scrollBox.onscroll = () => {
-						this.scroll(scrollBox)
+						let scrollItems = scrollBox.getElementsByClassName('scroll-item');
+						let scrollTop = scrollBox.scrollTop + this.pageProp.topGap + this.pageProp.bottomGap;
+						for ( let i = 0; i < scrollItems.length; i++ ) {
+							let offsetTop1 = scrollItems[i].offsetTop;
+							let offsetTop2 = i < scrollItems.length - 1 ? scrollItems[i+1].offsetTop : offsetTop1 + 2;
+							if ( scrollTop >= offsetTop1 &&  scrollTop < offsetTop2 ) {
+								let start = parseInt(scrollItems[i].getAttribute('start'));
+								let end = parseInt(scrollItems[i].getAttribute('end'));
+								if ( this.currentInfo.start != start ) {
+									this.currentInfo.start = start;
+									this.currentInfo.end = end;
+									this.currentInfo.text = scrollItems[i].innerText;
+									this.triggerCurrentChange(this.currentInfo)
+								}
+							}
+						}
+						if ( Math.ceil(scrollBox.scrollTop + scrollBox.offsetHeight) >= scrollBox.scrollHeight ) {//触底
+							if ( this.updownloading ) {
+								return;
+							}
+							this.updownloading = true;
+							let end = parseInt(scrollBox.lastChild.getAttribute('end'));
+							if ( end < this.pageProp.contents[0].content.length - 1 ) {
+								this.drawText(end, 'next');
+							} else {
+								this.triggerShowToast('后面已经没有了')
+							}
+							this.updownloading = false;
+						}
+						if ( scrollBox.scrollTop <= 0 ) {//触顶
+							if ( this.updownloading ) {
+								return;
+							}
+							this.updownloading = true;
+							let start = parseInt(scrollBox.firstChild.getAttribute('start'));
+							if ( start > 0 ) {
+								this.drawText(start, 'prev');
+							} else {
+								this.triggerShowToast('前面已经没有了')
+							}
+							this.updownloading = false;
+						}
 					};
 				}
 			},
-			//滚动处理事件（滚动模式下有效）
-			scroll (el) {
-				let scrollItems = document.getElementsByClassName('scroll-item');
-				let scrollTop = el.scrollTop + this.pageProp.topGap + this.pageProp.bottomGap;
-				for ( let i = 0; i < scrollItems.length; i++ ) {
-					let offsetTop1 = scrollItems[i].offsetTop;
-					let offsetTop2 = i < scrollItems.length - 1 ? scrollItems[i+1].offsetTop : offsetTop1 + 2;
-					if ( scrollTop >= offsetTop1 &&  scrollTop < offsetTop2 ) {
-						let chapter = scrollItems[i].getAttribute('chapter');
-						let start = scrollItems[i].getAttribute('start');
-						let end = scrollItems[i].getAttribute('end');
-						if ( this.currentInfo.chapter != chapter || this.currentInfo.start != start ) {
-							this.currentInfo.chapter = chapter;
-							this.currentInfo.start = start;
-							this.currentInfo.end = end;
-							this.triggerCurrentChange(this.currentInfo)
-						} else {
-							this.currentInfo.chapter = chapter;
-							this.currentInfo.start = start;
-							this.currentInfo.end = end;
-						}
-					}
-				}
-				if ( Math.ceil(el.scrollTop + el.offsetHeight) >= el.scrollHeight ) {//触底
-					let args = {'chapter': el.lastChild.getAttribute('chapter'), 'isBottom': Math.ceil(el.scrollTop + el.offsetHeight) >= el.scrollHeight};
-					this.scrollToLower(args);
-				}
-				if ( el.scrollTop <= 0 ) {//触顶
-					let args = {'chapter': el.firstChild.getAttribute('chapter'), 'isTop': el.scrollTop == 0};
-					this.scrollToUpper(args);
-				}
-			},
 			//计算页面显示文字
-			computedText (content, chapter) {
+			computedText (start) {
 				let parent = document.getElementById('computed' + this.pageProp.dataId);
 				this.viewWidth = parent.offsetWidth;
 				this.viewHeight = parent.offsetHeight;
@@ -347,143 +227,181 @@
 				context.font = this.pageProp.fontSize + 'px 微软雅黑';
 				context.fillStyle = this.pageProp.color;
 				context.lineWidth = 1;
+				let pageHeight = this.pageProp.fontSize + this.pageProp.lineHeight;
+				let strs = [];
+				let page = {
+					start: start,
+					end: 0,
+					text: []
+				}
+				let length = 0;
+				let contentSync = this.pageProp.contents[0].content.substr(start);
 				let lastIndex = 0;
-				let pages = [];
-				const dowhile = () => {
-					let pageHeight = this.pageProp.fontSize + this.pageProp.lineHeight;
-					let strs = [];
-					pages.push({
-						chapter: chapter,
-						start: lastIndex,
-						end: 0,
-						text: []
-					})
-					while ( pageHeight <= this.viewHeight - this.pageProp.topGap - this.pageProp.bottomGap ) {
-						strs.push('');
+				while ( pageHeight <= this.viewHeight - this.pageProp.topGap - this.pageProp.bottomGap ) {
+					strs.push('');
+					let lineWidth = 0;
+					for ( let i = lastIndex; i < contentSync.length; i++ ) {
+						lineWidth += context.measureText(contentSync[i]).width;
+						if ( JSON.stringify(contentSync[i]) == JSON.stringify('\r') || JSON.stringify(contentSync[i]) == JSON.stringify('\n') ) {
+							length += 1
+							lastIndex = i + 1;
+							break;
+						} else if ( lineWidth >= this.viewWidth - (2 * this.pageProp.slide) ) {
+							lastIndex = i;
+							break;
+						} else {
+							strs[strs.length - 1] += contentSync[i];
+							length += 1;
+							page.end = page.start + length;
+						}
+					}
+					pageHeight += this.pageProp.fontSize + this.pageProp.lineHeight;
+					if ( page.end >= this.pageProp.contents[0].content.length - 1 ) break;
+				}
+				page.text = strs;
+				return page;
+			},
+			//计算当前显示页面上一页显示文字
+			computedPrevText (end) {
+				let parent = document.getElementById('computed' + this.pageProp.dataId);
+				this.viewWidth = parent.offsetWidth;
+				this.viewHeight = parent.offsetHeight;
+				let computedCanvas = this.createComputedCanvas(parent);
+				let context = computedCanvas.getContext('2d');
+				context.font = this.pageProp.fontSize + 'px 微软雅黑';
+				context.fillStyle = this.pageProp.color;
+				context.lineWidth = 1;
+				let pageHeight = this.pageProp.fontSize + this.pageProp.lineHeight;
+				let strs = [];
+				let page = {
+					start: 0,
+					end: end,
+					text: []
+				}
+				let length = 0;
+				let lastIndex1 = 0;
+				let lastIndex2 = 0;
+				while ( pageHeight <= this.viewHeight - this.pageProp.topGap - this.pageProp.bottomGap ) {
+					if ( end - length > 0 ) {
+						strs.unshift('');
 						let lineWidth = 0;
-						for ( let i = lastIndex; i < content.length; i++ ) {
-							lineWidth += context.measureText(content[i]).width;
-							if ( JSON.stringify(content[i]) == JSON.stringify('\r') || JSON.stringify(content[i]) == JSON.stringify('\n') ) {
-								lastIndex = i + 1;
+						let contentSync = this.pageProp.contents[0].content.substring(0, end);
+						for ( let i = lastIndex1 || contentSync.length - 1; i >= 0; i-- ) {
+							lineWidth += context.measureText(contentSync[i]).width;
+							if ( JSON.stringify(contentSync[i]) == JSON.stringify('\r') || JSON.stringify(contentSync[i]) == JSON.stringify('\n') ) {
+								lastIndex1 = i - 1;
+								length += 1
 								break;
 							} else if ( lineWidth >= this.viewWidth - (2 * this.pageProp.slide) ) {
-								lastIndex = i;
+								lastIndex1 = i;
 								break;
 							} else {
-								strs[strs.length - 1] += content[i];
-								lastIndex = i;
+								strs[0] = contentSync[i] + strs[0];
+								length += 1
+								page.start = end - length;
 							}
+							if ( page.start == 0 ) break;
 						}
 						pageHeight += this.pageProp.fontSize + this.pageProp.lineHeight;
-						if ( lastIndex >= content.length - 1 ) break;
-					}
-					pages[pages.length - 1].end = lastIndex;
-					pages[pages.length - 1].text = strs;
-					if ( lastIndex >= content.length - 1 ) {
 					} else {
-						pages[pages.length - 1].isChapterEnd = false;
-					}
-					if ( lastIndex < content.length - 1 ) {
-						dowhile();
-					} else {
-						this.pages.push({
-							chapter: chapter,
-							pageItems: pages
-						})
-						this.drawText(pages);
+						if ( this.pageProp.pageType != 'scroll' ) {
+							strs.push('');
+							let lineWidth = 0;
+							let contentSync = this.pageProp.contents[0].content.substr(end);
+							for ( let i = lastIndex2; i < contentSync.length; i++ ) {
+								lineWidth += context.measureText(contentSync[i]).width;
+								if ( JSON.stringify(contentSync[i]) == JSON.stringify('\r') || JSON.stringify(contentSync[i]) == JSON.stringify('\n') ) {
+									lastIndex2 = i + 1;
+									length += 1
+									break;
+								} else if ( lineWidth >= this.viewWidth - (2 * this.pageProp.slide) ) {
+									lastIndex2 = i;
+									break;
+								} else {
+									strs[strs.length - 1] += contentSync[i];
+									length += 1;
+									page.end = page.start + length;
+								}
+							}
+							pageHeight += this.pageProp.fontSize + this.pageProp.lineHeight;
+							if ( page.end >= this.pageProp.contents[0].content.length - 1 ) break;
+						} else {
+							break;
+						}
 					}
 				}
-				dowhile();
+				page.text = strs;
+				return page;
 			},
 			//绘制文字到页面上
-			drawText (pages) {
+			drawText (start, type = 'init') {
 				if ( this.pageProp.pageType != 'scroll' ) {
 					let parent = document.getElementById('content' + this.pageProp.dataId);
-					let type = parent.firstChild ? pages[0].chapter < parent.firstChild.getAttribute('chapter') ? 'prev' : 'next' : 'init';
-					for ( let i = 0; i < pages.length; i++ ) {
-						let pageItem = this.createPageItem(parent, pages[i], type, i);
-						let el = {
-							el: pageItem,
-							content: pageItem.getElementsByClassName('page-item-canvas')[0],
-							bg: pageItem.getElementsByClassName('page-item-bg')[0],
-							shadow: pageItem.getElementsByClassName('page-item-shadow')[0]
-						}
-						// let context = el.content.getContext('2d');
-						// context.fillStyle = this.pageProp.bgColor;
-						// context.fillRect(0,0,this.viewWidth,this.viewHeight);
-						//设置阅读位置前面的页面变成已经翻页的状态
-						if ( pages[i].chapter < this.currentInfo.chapter || (pages[i].chapter == this.currentInfo.chapter && this.currentInfo.start > pages[i].end) ) {
-							this.pageAnimation(-this.viewWidth, 0, el);
-						}
-						for ( let j = 0; j < pages[i].text.length; j++ ) {
-							this.insetScrollText(pageItem.getElementsByClassName('page-item-canvas')[0], pages[i].text[j], this.pageProp.fontSize);
-							// context.font = this.pageProp.fontSize + 'px 微软雅黑';
-							// context.fillStyle = this.pageProp.color;
-							// context.fillText(pages[i].text[j], this.pageProp.slide, ((j + 1) * (this.pageProp.fontSize + this.pageProp.lineHeight)) + this.pageProp.topGap);
-						}
+					let page = type == 'prev' ? this.computedPrevText(start) : this.computedText(start);
+					let pageItem = this.createPageItem(parent, page, type);
+					let el = {
+						el: pageItem,
+						content: pageItem.getElementsByClassName('page-item-canvas')[0],
+						bg: pageItem.getElementsByClassName('page-item-bg')[0],
+						shadow: pageItem.getElementsByClassName('page-item-shadow')[0]
+					}
+					for ( let i = 0; i < page.text.length; i++ ) {
+						this.insetScrollText(el.content, page.text[i], this.pageProp.fontSize);
+						// context.font = this.pageProp.fontSize + 'px 微软雅黑';
+						// context.fillStyle = this.pageProp.color;
+						// context.fillText(pages[i].text[j], this.pageProp.slide, ((j + 1) * (this.pageProp.fontSize + this.pageProp.lineHeight)) + this.pageProp.topGap);
 					}
 					this.resetProp();
 					if ( type == 'init' ) {
-						if ( this.currentInfo.chapter > 1 ) {
-							if ( this.currentInfo.chapter == parent.firstChild.getAttribute('chapter') && this.currentInfo.start >= parent.firstChild.getAttribute('start') && this.currentInfo.start <= parent.firstChild.getAttribute('end') ) {
-								let args = {'chapter': this.currentInfo.chapter, 'isTop': true};
-								this.scrollToUpper(args);
-							}
-							if ( this.currentInfo.chapter == parent.lastChild.getAttribute('chapter') && this.currentInfo.start >= parent.lastChild.getAttribute('start') && this.currentInfo.start <= parent.lastChild.getAttribute('end') ) {
-								let args = {'chapter': this.currentInfo.chapter, 'isBottom': true};
-								this.scrollToLower(args);
-							}
+						if ( page.start > 0 ) {
+							this.drawText(page.start, 'prev')
 						}
-						this.preloadContent(this.currentInfo.chapter);
+						if ( page.end < this.pageProp.contents[0].content.length - 1 ) {
+							this.drawText(page.end, 'next')
+						}
+						this.currentInfo.start = el.el.getAttribute('start');
+						this.currentInfo.end = el.el.getAttribute('end');
+						this.currentInfo.text = el.content.innerText;
+						this.triggerCurrentChange(this.currentInfo);
+					} else if ( type == 'prev' ) {
+						this.pageAnimation(-this.viewWidth, 0, el);
+						if ( parent.getElementsByClassName('page-item').length > 3 ) parent.removeChild(parent.lastChild);
 					} else {
-						let pageItems = parent.getElementsByClassName('page-item');
-						let arr = [];
-						for ( let i = 0; i < pageItems.length; i++ ) {
-							arr.push(pageItems[i].getAttribute('chapter'));
-						}
-						const unique = [...new Set(arr)]
-						if ( unique.length > 3 ) {
-							let length = pageItems.length;
-							if ( type == 'prev' ) {
-								while ( parent.lastChild.getAttribute('chapter') == unique[unique.length - 1] ) {
-									parent.removeChild(parent.lastChild);
-								}
-							} else {
-								while ( parent.firstChild.getAttribute('chapter') == unique[0] ) {
-									parent.removeChild(parent.firstChild);
-								}
-							}
-						}
+						if ( parent.getElementsByClassName('page-item').length > 3 ) parent.removeChild(parent.firstChild);
 					}
 				} else {
 					let scrollBox = document.getElementById('scroll-box' + this.pageProp.dataId);
-					let type = scrollBox.firstChild ? pages[0].chapter < scrollBox.firstChild.getAttribute('chapter') ? 'prev' : 'next' : 'init';
-					let scrollChapter = this.createScrollChapter(scrollBox, pages[0].chapter);
-					for ( let i = 0; i < pages.length; i++ ) {
-						let scrollDom = this.createScrollItem(scrollChapter, pages[i], i);
-						for ( let j = 0; j < pages[i].text.length; j++ ) {
-							this.insetScrollText(scrollDom, pages[i].text[j]);
-						}
+					let page = type == 'prev' ? this.computedPrevText(start) : this.computedText(start);
+					let scrollItem = this.createScrollItem(scrollBox, page, type);
+					for ( let i = 0; i < page.text.length; i++ ) {
+						this.insetScrollText(scrollItem, page.text[i], this.pageProp.fontSize);
 					}
 					this.resetProp();
-					if ( type == 'prev' ) {
-						scrollBox.scrollTop = scrollChapter.offsetHeight;
-						if ( document.getElementsByClassName('scroll-chapter-box').length > 3 ) scrollBox.removeChild(scrollBox.lastChild);
-					} else if ( type == 'next' ) {
-						if ( document.getElementsByClassName('scroll-chapter-box').length > 3 ) scrollBox.removeChild(scrollBox.firstChild);
-						scrollBox.scrollTop = scrollBox.scrollHeight - scrollBox.lastChild.offsetHeight - scrollBox.offsetHeight + 50;
-					} else {
-						//初始化时，定位阅读位置
-						let scrollItems = document.getElementsByClassName('scroll-item')
+					if ( type == 'init' ) {
+						if ( page.start > 0 ) {
+							this.drawText(page.start, 'prev')
+						}
+						if ( page.end < this.pageProp.contents[0].content.length - 1 ) {
+							this.drawText(page.end, 'next')
+						}
+						let scrollItems = scrollBox.getElementsByClassName('scroll-item')
 						let offsetHeight = 0;
 						for ( let i = 0; i < scrollItems.length; i++ ) {
-							offsetHeight += i > 0 ? scrollItems[i].offsetHeight : 0;
-							if ( this.currentInfo.start >= scrollItems[i].getAttribute('start') && this.currentInfo.start <= scrollItems[i].getAttribute('end') ) {
+							offsetHeight += i > 0 ? scrollItems[i - 1].offsetHeight : 0;
+							if ( this.currentInfo.start >= scrollItems[i].getAttribute('start') && this.currentInfo.start < scrollItems[i].getAttribute('end') ) {
 								scrollBox.scrollTop = offsetHeight;
+								this.currentInfo.text = scrollItems[i].innerText;
+								this.currentInfo.end = scrollItems[i].getAttribute('end');
 							}
 						}
-						this.preloadContent(this.currentInfo.chapter);
-						this.scroll(scrollBox);
+						this.bindScrollEvent();
+						this.triggerCurrentChange(this.currentInfo);
+					} else if ( type == 'prev' ) {
+						scrollBox.scrollTop = scrollItem.offsetHeight;
+						if ( scrollBox.getElementsByClassName('scroll-item').length > 3 ) scrollBox.removeChild(scrollBox.lastChild);
+					} else {
+						if ( scrollBox.getElementsByClassName('scroll-item').length > 3 ) scrollBox.removeChild(scrollBox.firstChild);
+						scrollBox.scrollTop = scrollBox.scrollHeight - scrollBox.lastChild.offsetHeight - scrollBox.offsetHeight + 50;
 					}
 				}
 			},
@@ -501,7 +419,7 @@
 				return document.getElementsByClassName('computedCanvas')[0];
 			},
 			//创建翻页的文章盒子
-			createPageItem (el, info, type, i) {
+			createPageItem (el, info, type) {
 				let pageItem = document.createElement('div');
 				pageItem.style.width = '100%';
 				pageItem.style.height = '100%';
@@ -509,13 +427,12 @@
 				pageItem.style.position = 'absolute';
 				pageItem.style.top = 0;
 				pageItem.style.left = 0;
-				pageItem.style.zIndex = -(info.chapter * 100000 + i);
-				if ( this.currentInfo.start >= info.start && this.currentInfo.start <= info.end && this.currentInfo.chapter == info.chapter ) {
-					pageItem.setAttribute('class', 'page-item page-item-actived page-item-chapter__' + (info.chapter + info.start));
+				pageItem.style.zIndex = -info.start;
+				if ( this.currentInfo.start >= info.start && this.currentInfo.start < info.end ) {
+					pageItem.setAttribute('class', 'page-item page-item-actived page-item-start__' + info.start);
 				} else {
-					pageItem.setAttribute('class', 'page-item page-item-chapter__' + (info.chapter + info.start));
+					pageItem.setAttribute('class', 'page-item page-item-start__' + info.start);
 				}
-				pageItem.setAttribute('chapter', info.chapter);
 				pageItem.setAttribute('start', info.start);
 				pageItem.setAttribute('end', info.end);
 				// let canvas = document.createElement('canvas');
@@ -537,6 +454,7 @@
 				pageContent.style.color = this.pageProp.color;
 				pageContent.style.overflow = 'hidden';
 				pageContent.style.padding = `${this.pageProp.topGap}px ${this.pageProp.slide}px ${this.pageProp.bottomGap}px ${this.pageProp.slide}px`;
+				pageContent.style.boxSizing = 'border-box';
 				pageContent.setAttribute('class', 'page-item-canvas');
 				pageItem.appendChild(pageContent);
 				let pageBg = document.createElement('div');
@@ -557,52 +475,37 @@
 				pageShadow.style.top = 0;
 				pageShadow.style.right = 0;
 				pageShadow.style.zIndex = '9';
-				// pageShadow.style.backgroundColor = 'rgba(0,0,0,0.5)';
-				// pageShadow.style.filter = 'blur(20px)';
 				pageShadow.setAttribute('class', 'page-item-shadow');
 				pageItem.appendChild(pageShadow);
-				if ( type == 'init' ) {
-					el.appendChild(pageItem);
-				} else if ( type == 'next' ) {
-					el.appendChild(pageItem);
+				if ( type == 'prev' ) {
+					el.insertBefore(pageItem, el.firstChild);
 				} else {
-					let node = document.getElementsByClassName('page-item-chapter__' + (info.chapter + 1))[0];
-					el.insertBefore(pageItem, node);
+					el.appendChild(pageItem);
 				}
-				return document.getElementsByClassName('page-item-chapter__' + (info.chapter + info.start))[0];
-			},
-			//创建滚动布局下的章节盒子
-			createScrollChapter (el, chapter) {
-				let divDom = document.createElement('div');
-				divDom.style.width = '100%';
-				divDom.setAttribute('class', 'scroll-chapter-box scroll-box-chapter__' + chapter);
-				divDom.setAttribute('chapter', chapter);
-				if ( chapter > (el.lastChild ? el.lastChild.getAttribute('chapter') : 0) ) {
-					el.appendChild(divDom);
-				}
-				if ( chapter < (el.firstChild ? el.firstChild.getAttribute('chapter') : 0) ) {
-					el.insertBefore(divDom, el.firstChild);
-				}
-				return document.getElementsByClassName('scroll-box-chapter__' + chapter)[0]
+				return document.getElementsByClassName('page-item-start__' + info.start)[0];
 			},
 			//创建滚动布局下的的页面盒子
-			createScrollItem (el, info, value) {
+			createScrollItem (el, info, type) {
 				let divDom = document.createElement('div');
 				divDom.style.width = '100%';
-				divDom.setAttribute('class', 'scroll-item scroll-chapter__' + info.chapter);
-				divDom.setAttribute('chapter', info.chapter);
+				divDom.setAttribute('class', 'scroll-item scroll-start__' + info.start);
 				divDom.setAttribute('start', info.start);
 				divDom.setAttribute('end', info.end);
-				el.appendChild(divDom);
-				return document.getElementsByClassName('scroll-chapter__' + info.chapter)[value]
+				if ( type == 'prev' ) {
+					el.insertBefore(divDom, el.firstChild);
+				} else {
+					el.appendChild(divDom);
+				}
+				return document.getElementsByClassName('scroll-start__' + info.start)[0]
 			},
 			//创建滚动布局下的的文字盒子
 			insetScrollText (el, text, height = 0) {
 				let pDom = document.createElement('p');
-				pDom.style.fontSize = this.pageProp.fontSize + 'px';
-				pDom.style.marginTop = this.pageProp.lineHeight + 'px';
 				pDom.style.height = height ? height + 'px' : 'auto';
+				pDom.style.marginTop = this.pageProp.lineHeight + 'px';
+				pDom.style.fontSize = this.pageProp.fontSize + 'px';
 				pDom.style.whiteSpace = 'pre-wrap';
+				pDom.style.fontFamily = '"Microsoft YaHei",微软雅黑';
 				pDom.setAttribute('class', 'scroll-text');
 				pDom.innerHTML = text || ' ';
 				el.appendChild(pDom);
@@ -612,7 +515,7 @@
 					return;
 				}
 				if ( e.touches.length == 1 ) {
-					this.touchTimer = setInterval(() => {
+					this.touchTimer = window.setInterval(() => {
 						this.touchTime += 50;
 					}, 50)
 					let touch = e.touches[0];
@@ -646,7 +549,7 @@
 				}
 			},
 			pageTouchend (e) {
-				clearTimeout(this.touchTimer);
+				window.clearInterval(this.touchTimer);
 				if ( this.pageWating ) {
 					return;
 				}
@@ -706,7 +609,6 @@
 				pageEl.el.style.transform = `translateX(${lateX}px)`;
 				pageEl.content.style.transform = this.pageProp.pageType == 'real' ? `translateX(${-lateX}px)` : pageEl.content.style.transform;
 				pageEl.bg.style.transform = this.pageProp.pageType == 'real' ? `translate(${lateX}px, -50%) rotateZ(${rotateZ}deg)` : pageEl.bg.style.transform;
-				// pageEl.shadow.style.width = this.pageProp.pageType == 'real' ? Math.abs(lateX) > 30 ? '30px' : Math.abs(lateX) + 'px' : 0;
 				pageEl.shadow.style.boxShadow = '0 0 60px ' + (this.pageProp.pageType == 'real' ? Math.abs(lateX) > 30 ? 30 : Math.abs(lateX) : 0) + 'px rgba(0,0,0,0.5)';
 			},
 			//设置翻页对象动画时间
@@ -714,7 +616,6 @@
 				this.pageEl.el.style.transition = duration > 0 ? 'transform ' + duration + 'ms' : '';
 				this.pageEl.content.style.transition = duration > 0 ? 'transform ' + duration + 'ms' : '';
 				this.pageEl.bg.style.transition = duration > 0 ? 'transform ' + duration + 'ms' : '';
-				// this.pageEl.shadow.style.transition = duration > 0 ? 'width ' + duration + 'ms' : '';
 				this.pageEl.shadow.style.transition = duration > 0 ? 'box-shadow ' + duration + 'ms' : '';
 			},
 			//获取翻页对象
@@ -732,6 +633,11 @@
 						}
 					}
 				}
+				if ( value < 0 ) {
+					this.triggerShowToast('前面已经没有了')
+				} else {
+					this.triggerShowToast('后面已经没有了')
+				}
 				return false;
 			},
 			//改变翻页对象
@@ -746,26 +652,44 @@
 				}
 				boxs[index].setAttribute('class', boxs[index].getAttribute('class').replace('page-item-actived', ''));
 				boxs[index + value].setAttribute('class', boxs[index + value].getAttribute('class') + ' page-item-actived');
-				this.currentInfo.chapter = boxs[index + value].getAttribute('chapter');
 				this.currentInfo.start = boxs[index + value].getAttribute('start');
 				this.currentInfo.end = boxs[index + value].getAttribute('end');
+				this.currentInfo.text = boxs[index + value].getElementsByClassName('page-item-canvas')[0].innerText;
 				this.triggerCurrentChange(this.currentInfo);
-				if ( value < 0 && this.currentInfo.start == 0 && !boxs[index + value - 1] ) {
-					let args = {'chapter': this.currentInfo.chapter, 'isTop': true};
-					this.scrollToUpper(args);
+				if ( value < 0 && !boxs[index + value - 1] ) {
+					if ( this.updownloading ) {
+						return;
+					}
+					this.updownloading = true;
+					let start = parseInt(content.firstChild.getAttribute('start'));
+					if ( start > 0 ) {
+						this.drawText(start, 'prev');
+					} else {
+						this.triggerShowToast('前面已经没有了')
+					}
+					this.updownloading = false;
 				}
 				if ( value > 0 && !boxs[index + value + 1] ) {
-					let args = {'chapter': this.currentInfo.chapter, 'isBottom': true};
-					this.scrollToLower(args);
+					if ( this.updownloading ) {
+						return;
+					}
+					this.updownloading = true;
+					let end = parseInt(content.lastChild.getAttribute('end'));
+					if ( end < this.pageProp.contents[0].content.length - 1 ) {
+						this.drawText(end, 'next');
+					} else {
+						this.triggerShowToast('后面已经没有了')
+					}
+					this.updownloading = false;
 				}
 			},
 			//参数改变
 			pagePropChange (newValue, oldValue) {
 				if ( newValue.fontSize != oldValue.fontSize ) {//字体大小改变
-					this.restartDrawText(this.currentInfo.chapter);
+					this.restartDrawText();
 				}
 				if ( newValue.lineHeight != oldValue.lineHeight ) {//字体行高改变
-					this.restartDrawText(this.currentInfo.chapter);
+					this.restartDrawText();
 				}
 				if ( newValue.color != oldValue.color || newValue.bgColor != oldValue.bgColor ) {//字体颜色改变
 					if ( this.pageProp.pageType != 'scroll' ) {
@@ -774,39 +698,26 @@
 					}
 				}
 				if ( newValue.pageType != oldValue.pageType ) {//翻页模式改变
-					this.restartDrawText(this.currentInfo.chapter);
-				}
-				if ( newValue.isNewChapter != oldValue.isNewChapter ) {//绘制新章节通知
-					this.isNewChapterChange(newValue.isNewChapter);
+					this.restartDrawText();
 				}
 				if ( newValue.restart != oldValue.restart ) {//重绘页面通知
 					this.restartChange(newValue.restart);
 				}
 			},
 			//重绘页面
-			restartDrawText (chapter) {
-				let index = this.indexOfRender(this.pageProp.contents, 'chapter', chapter);
+			restartDrawText () {
 				if ( this.pageProp.pageType == 'scroll' ) {
-					this.bindScrollEvent();
 					document.getElementById('scroll-box' + this.pageProp.dataId).innerHTML = '';
-					this.computedText(this.pageProp.contents[index].content, this.pageProp.contents[index].chapter);
+					this.drawText(this.currentInfo.start);
 				} else {
 					document.getElementById('content' + this.pageProp.dataId).innerHTML = '';
-					this.computedText(this.pageProp.contents[index].content, this.pageProp.contents[index].chapter);
+					this.drawText(this.currentInfo.start);
 				}
 			},
 			restartChange (newValue) {
 				if ( newValue ) {
-					let index = this.indexOfRender(this.pageProp.contents, 'chapter', this.pageProp.newChapter);
-					this.currentInfo.chapter = this.pageProp.contents[index].chapter;
-					this.currentInfo.start = this.pageProp.contents[index].start;
-					this.restartDrawText(this.currentInfo.chapter);
-				}
-			},
-			isNewChapterChange (newValue) {
-				if ( newValue ) {
-					let index = this.indexOfRender(this.pageProp.contents, 'chapter', this.pageProp.newChapter);
-					this.computedText(this.pageProp.contents[index].content, this.pageProp.newChapter);
+					this.currentInfo.start = this.pageProp.contents[0].start;
+					this.restartDrawText();
 				}
 			},
 			colorChange () {
@@ -816,42 +727,6 @@
 					items[i].getElementsByClassName('page-item-bg')[0].style.background = this.pageProp.bgColor;
 					items[i].getElementsByClassName('page-item-canvas')[0].style.color = this.pageProp.color;
 				}
-			},
-			scrollToLower (args) {
-				// #ifndef H5
-				UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
-					cid: this._$id,
-					method: 'getNextContent',
-					args: args
-				})
-				// #endif
-				// #ifdef H5
-				this.getNextContent(args)
-				// #endif
-			},
-			scrollToUpper (args) {
-				// #ifndef H5
-				UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
-					cid: this._$id,
-					method: 'getPrevContent',
-					args: args
-				})
-				// #endif
-				// #ifdef H5
-				this.getPrevContent(args)
-				// #endif
-			},
-			preloadContent (chapter) {
-				// #ifndef H5
-				UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
-					cid: this._$id,
-					method: 'preload',
-					args: {'chapter': chapter}
-				})
-				// #endif
-				// #ifdef H5
-				this.preload({'chapter': chapter})
-				// #endif
 			},
 			triggerCurrentChange (currentInfo) {
 				// #ifndef H5
@@ -864,7 +739,18 @@
 				// #ifdef H5
 				this.currentChange({'currentInfo': currentInfo})
 				// #endif
-				this.preloadContent(currentInfo.chapter);
+			},
+			triggerShowToast (title) {
+				// #ifndef H5
+				UniViewJSBridge.publishHandler('onWxsInvokeCallMethod', {
+					cid: this._$id,
+					method: 'showToast',
+					args: {'title': title}
+				})
+				// #endif
+				// #ifdef H5
+				this.showToast({'title': title})
+				// #endif
 			},
 			//重置部分传过来的属性
 			resetProp () {
@@ -877,21 +763,6 @@
 				// #ifdef H5
 				this.resetPageProp()
 				// #endif
-			},
-			/**
-			 * 数组查找符合条件元素并返回下标
-			 * @param {Array} arr 传入数组
-			 * @param {String} value 条件元素
-			 * @param {String} query 对比key值
-			*/
-			indexOfRender (arr, query, value) {
-				let len = arr.length;
-				for ( let i = 0; i < len; i++ ) {
-					if ( arr[i][query] == value ) {
-						return parseInt(i);
-					}
-				}
-				return -1;
 			}
 		}
 	}
@@ -916,7 +787,6 @@
 		right: 0;
 		top: 0;
 		bottom: 0;
-		box-sizing: border-box;
 		/* overflow-anchor: auto; */
 		overflow-y: auto;
 	}

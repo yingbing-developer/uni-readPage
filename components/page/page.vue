@@ -45,7 +45,7 @@
 			//字体大小（单位px）
 			fontSize: {
 				type: String | Number,
-				default: 20
+				default: 15
 			},
 			//背景颜色
 			bgColor: {
@@ -60,12 +60,12 @@
 			//行间距（单位px）
 			lineHeight: {
 				type: Number | String,
-				default: 5
+				default: 15
 			},
 			//页面左右边距（单位px）
 			slide: {
 				type: Number | String,
-				default: 10
+				default: 40
 			},
 			//页面上边距（单位px）
 			topGap: {

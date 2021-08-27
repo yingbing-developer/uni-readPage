@@ -7,6 +7,8 @@
 		:line-height="lineHeight"
 		:color="color"
 		:bg-color="bgColor"
+		:slide="slide"
+		no-chapter
 		@loadmore="loadmoreContent"
 		@preload="preloadContent"
 		@currentChange="currentChange"></page>
@@ -22,9 +24,10 @@
 				list: [],
 				pageType: 'real',
 				scrollTop: 400,
-				fontsize: 20,
-				lineHeight: 20,
+				fontsize: 15,
+				lineHeight: 15,
 				color: '#333',
+				slide: 40,
 				bgColor: '#fcd281'
 			}
 		},
@@ -36,8 +39,8 @@
 		onReady() {
 			let contents = [{
 				chapter: 1,
-				start: 100,
-				content: this.getContent(1),
+				start: 0,
+				content: this.getContent(1) + this.getContent(2) + this.getContent(3),
 				isEnd: false
 			},{
 				chapter: 2,
@@ -53,7 +56,7 @@
 			const { page } = this.$refs;
 			page.init({
 				contents: contents,
-				current: 3
+				current: 1
 			})
 		},
 		methods: {
