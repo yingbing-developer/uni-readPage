@@ -16,13 +16,13 @@
 | slide | String/Number | 40 | 自定义 | 页面左右边距 |
 | topGap | String/Number | 10 | 自定义 | 页面上边距 |
 | bottomGap | String/Number | 10 | 自定义 | 页面下边距 |
-| noChapter | Boolean | false | true/false | 小说是否是整书模式（无章节模式） |
+| noChapter | Boolean | false | true/false | 是否开启整书模式（无章节模式） |
 
 #event事件
 | 事件名 | 返回值 | 说明 |
 | :----- | :----: | :---- |
-| loadmore | chapter,next,error | 加载章节内容（chapter为需要加载的章节序号，next为加载成功回调，error为加载失败回调）|
-| preload | chapters,next,error | 预加载章节内容（chapter为需要预加载的章节序号集合，next为加载成功回调，error为加载失败回调）|
+| loadmore | chapter,next,error | 加载章节内容（chapter为需要加载的章节序号，next为加载成功回调，error为加载失败回调 noChapter为false有效）|
+| preload | chapters,next,error | 预加载章节内容（chapters为需要预加载的章节序号集合，next为加载成功回调，error为加载失败回调 noChapter为false有效）|
 | currentChange | currentInfo | 阅读页面改变触发事件（返回当前阅读页面信息）|
 | setCatalog | catalog | 获取章节目录事件（noChapter为true时有效）|
 
@@ -49,8 +49,8 @@
 #整书模式 contents对象介绍
 | 键名 | 类型 | 说明 |
 | :----- | :----: | :---- |
-| start | Number | 章节定位的位置（current为当前章节时有效） |
-| content | String | 章节内容 |
+| start | Number | 小说定位的位置 |
+| content | String | 小说全部内容 |
 
 
 #使用方法
