@@ -109,10 +109,11 @@
 			init (data) {
 				this.contents = data.contents || this.contents;
 				this.restart = true;
+				this.getCatalog(this.contents[0].content);
 			},
 			//跳转
 			change (data) {
-				this.contents[0].start = data.position;
+				this.contents[0].start = data.start;
 				this.restart = true;
 			},
 			showToast (e) {
@@ -129,6 +130,19 @@
 			resetPageProp () {
 				this.restart = false;
 				this.isNewChapter = false;
+			},
+			//使用正则获取章节目录 并抛出事件
+			getCatalog (content) {
+				const reg = new RegExp(/(第?[一二两三四五六七八九十○零百千万亿0-9１２３４５６７８９０※✩★☆]{1,6}[章回卷节折篇幕集部]?[、.-\s][^\n]*)[_,-]?/g);
+				let match = '';
+				let catalog = [];
+				while ((match = reg.exec(content)) != null) {
+					catalog.push({
+						title: match[0],
+						start: match.index
+					})
+				}
+				this.$emit('setCatalog', catalog);
 			}
 		}
 	}

@@ -1,5 +1,5 @@
 <template>
-	<view class="scroll" @tap="changePageType">
+	<view class="scroll">
 		<yingbing-ReadPage
 		ref="page"
 		:page-type="pageType"
@@ -11,7 +11,8 @@
 		no-chapter
 		@loadmore="loadmoreContent"
 		@preload="preloadContent"
-		@currentChange="currentChange"></yingbing-ReadPage>
+		@currentChange="currentChange"
+		@setCatalog="setCatalog"></yingbing-ReadPage>
 	</view>
 </template>
 
@@ -62,6 +63,9 @@
 			currentChange (e) {
 				console.log(e);
 			},
+			setCatalog (e) {
+				console.log(e);
+			},
 			addFontsize () {
 				this.fontsize += 4;
 			},
@@ -98,10 +102,11 @@
 				const { page } = this.$refs;
 				page.change({
 					contents: contents,
+					start: 600,
 					current: 5
 				})
 			},
-			loadmoreContent (chapter, next) {
+			loadmoreContent (chapter, next, error) {
 				console.log(chapter);
 				next({
 					chapter: chapter,
@@ -110,7 +115,7 @@
 					isEnd: chapter == 7
 				});
 			},
-			preloadContent (chapters, next) {
+			preloadContent (chapters, next, error) {
 				let contents = []
 				for ( let i in chapters ) {
 					contents.push({

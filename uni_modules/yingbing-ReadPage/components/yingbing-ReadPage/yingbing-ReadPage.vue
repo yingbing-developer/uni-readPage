@@ -28,7 +28,8 @@
 		:bottomGap="bottomGap"
 		@loadmore="loadmore"
 		@preload="preload"
-		@currentChange="currentChange"></page-no-chapter>
+		@currentChange="currentChange"
+		@setCatalog="setCatalog"></page-no-chapter>
 	</view>
 </template>
 
@@ -55,7 +56,7 @@
 			//翻页方式
 			pageType: {
 				type: String,
-				default: 'scroll'
+				default: 'real'
 			},
 			//行间距（单位px）
 			lineHeight: {
@@ -105,11 +106,14 @@
 			currentChange (e) {
 				this.$emit('currentChange', e);
 			},
-			loadmore (chapter, next) {
-				this.$emit('loadmore', chapter, next);
+			setCatalog (e) {
+				this.$emit('setCatalog', e);
 			},
-			preload (chapters, next) {
-				this.$emit('preload', chapters, next);
+			loadmore (chapter, next, error) {
+				this.$emit('loadmore', chapter, next, error);
+			},
+			preload (chapters, next, error) {
+				this.$emit('preload', chapters, next, error);
 			}
 		},
 		components: {
