@@ -1,6 +1,6 @@
 <template>
-	<view class="scroll">
-		<page
+	<view class="scroll" @tap="changePageType">
+		<yingbing-ReadPage
 		ref="page"
 		:page-type="pageType"
 		:font-size="fontsize"
@@ -11,12 +11,11 @@
 		no-chapter
 		@loadmore="loadmoreContent"
 		@preload="preloadContent"
-		@currentChange="currentChange"></page>
+		@currentChange="currentChange"></yingbing-ReadPage>
 	</view>
 </template>
 
 <script>
-	import Page from '@/components/page/page.vue'
 	export default {
 		data() {
 			return {
@@ -39,7 +38,7 @@
 		onReady() {
 			let contents = [{
 				chapter: 1,
-				start: 0,
+				start: 50,
 				content: this.getContent(1) + this.getContent(2) + this.getContent(3),
 				isEnd: false
 			},{
@@ -186,9 +185,6 @@ return `第${chapter}章
 傻子啊傻子啊傻子啊傻子啊傻子啊傻子啊傻子啊傻子啊傻子啊啊
 `
 			}
-		},
-		components: {
-			Page
 		}
 	}
 </script>

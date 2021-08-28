@@ -359,8 +359,8 @@
 						if ( page.end < this.pageProp.contents[0].content.length - 1 ) {
 							this.drawText(page.end, 'next')
 						}
-						this.currentInfo.start = el.el.getAttribute('start');
-						this.currentInfo.end = el.el.getAttribute('end');
+						this.currentInfo.start = parseInt(el.el.getAttribute('start'));
+						this.currentInfo.end = parseInt(el.el.getAttribute('end'));
 						this.currentInfo.text = el.content.innerText;
 						this.triggerCurrentChange(this.currentInfo);
 					} else if ( type == 'prev' ) {
@@ -428,7 +428,7 @@
 				pageItem.style.top = 0;
 				pageItem.style.left = 0;
 				pageItem.style.zIndex = -info.start;
-				if ( this.currentInfo.start >= info.start && this.currentInfo.start < info.end ) {
+				if ( this.currentInfo.start == info.start ) {
 					pageItem.setAttribute('class', 'page-item page-item-actived page-item-start__' + info.start);
 				} else {
 					pageItem.setAttribute('class', 'page-item page-item-start__' + info.start);
@@ -652,8 +652,8 @@
 				}
 				boxs[index].setAttribute('class', boxs[index].getAttribute('class').replace('page-item-actived', ''));
 				boxs[index + value].setAttribute('class', boxs[index + value].getAttribute('class') + ' page-item-actived');
-				this.currentInfo.start = boxs[index + value].getAttribute('start');
-				this.currentInfo.end = boxs[index + value].getAttribute('end');
+				this.currentInfo.start = parseInt(boxs[index + value].getAttribute('start'));
+				this.currentInfo.end = parseInt(boxs[index + value].getAttribute('end'));
 				this.currentInfo.text = boxs[index + value].getElementsByClassName('page-item-canvas')[0].innerText;
 				this.triggerCurrentChange(this.currentInfo);
 				if ( value < 0 && !boxs[index + value - 1] ) {
@@ -681,6 +681,11 @@
 						this.triggerShowToast('后面已经没有了')
 					}
 					this.updownloading = false;
+				}
+				if ( value < 0 ) {
+					if ( boxs[index + value].getAttribute('end') != boxs[index + value + 1].getAttribute('start') ) {
+						this.restartDrawText();
+					}
 				}
 			},
 			//参数改变

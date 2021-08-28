@@ -1,10 +1,10 @@
 {
   "id": "yingbing-ReadPage",
-  "displayName": "yingbing-ReadPage",
+  "displayName": "小说阅读分页插件",
   "version": "1.0.0",
-  "description": "yingbing-ReadPage",
+  "description": "给小说分页的插件，包含翻页",
   "keywords": [
-    "yingbing-ReadPage"
+    "小说 阅读 翻页 分页"
 ],
   "repository": "",
   "engines": {
@@ -24,12 +24,12 @@
       }
     },
     "contact": {
-      "qq": ""
+      "qq": "1014295211"
     },
     "declaration": {
-      "ads": "",
-      "data": "",
-      "permissions": ""
+      "ads": "无",
+      "data": "无",
+      "permissions": "无"
     },
     "npmurl": ""
   },
@@ -38,33 +38,33 @@
     "encrypt": [],
     "platforms": {
       "cloud": {
-        "tcb": "u",
-        "aliyun": "u"
+        "tcb": "n",
+        "aliyun": "n"
       },
       "client": {
         "App": {
-          "app-vue": "u",
-          "app-nvue": "u"
+          "app-vue": "y",
+          "app-nvue": "n"
         },
         "H5-mobile": {
           "Safari": "u",
-          "Android Browser": "u",
-          "微信浏览器(Android)": "u",
-          "QQ浏览器(Android)": "u"
+          "Android Browser": "y",
+          "微信浏览器(Android)": "y",
+          "QQ浏览器(Android)": "y"
         },
         "H5-pc": {
-          "Chrome": "u",
-          "IE": "u",
-          "Edge": "u",
-          "Firefox": "u",
-          "Safari": "u"
+          "Chrome": "n",
+          "IE": "n",
+          "Edge": "n",
+          "Firefox": "n",
+          "Safari": "n"
         },
         "小程序": {
-          "微信": "u",
-          "阿里": "u",
-          "百度": "u",
-          "字节跳动": "u",
-          "QQ": "u"
+          "微信": "n",
+          "阿里": "n",
+          "百度": "n",
+          "字节跳动": "n",
+          "QQ": "n"
         },
         "快应用": {
           "华为": "u",
