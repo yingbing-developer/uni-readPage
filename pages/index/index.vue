@@ -21,7 +21,7 @@
 		data() {
 			return {
 				pages: [],
-				pageType: 'real',
+				pageType: 'cover',
 				scrollTop: 400,
 				fontsize: 15,
 				lineHeight: 15,

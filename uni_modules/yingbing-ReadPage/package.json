@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "description": "给小说分页的插件，包含翻页",
   "keywords": [
-    "小说 阅读 翻页 分页"
+    "小说",
+    "阅读",
+    "翻页",
+    "分页"
 ],
   "repository": "https://github.com/yingbing-developer/uni-readPage.git",
   "engines": {
@@ -38,8 +41,8 @@
     "encrypt": [],
     "platforms": {
       "cloud": {
-        "tcb": "n",
-        "aliyun": "n"
+        "tcb": "y",
+        "aliyun": "y"
       },
       "client": {
         "App": {
