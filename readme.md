@@ -75,7 +75,6 @@
 			data() {
 				return {
 					pages: [],
-					list: [],
 					pageType: 'real',
 					scrollTop: 400,
 					fontsize: 15,
@@ -84,11 +83,6 @@
 					slide: 40,
 					bgColor: '#fcd281'
 				}
-			},
-			onLoad() {
-				this.list.push({
-					start: 0
-				})
 			},
 			onReady() {
 				let contents = [{
