@@ -433,6 +433,7 @@
 					}
 					this.resetProp();
 					if ( type == 'init' ) {
+						this.currentInfo.isChapterEnd = false;
 						if ( this.currentInfo.chapter > 1 ) {
 							if ( this.currentInfo.chapter == parent.firstChild.getAttribute('chapter') && this.currentInfo.start >= parent.firstChild.getAttribute('start') && this.currentInfo.start <= parent.firstChild.getAttribute('end') ) {
 								let args = {'chapter': this.currentInfo.chapter, 'isTop': true};
@@ -440,9 +441,11 @@
 							}
 							if ( this.currentInfo.chapter == parent.lastChild.getAttribute('chapter') && this.currentInfo.start >= parent.lastChild.getAttribute('start') && this.currentInfo.start <= parent.lastChild.getAttribute('end') ) {
 								let args = {'chapter': this.currentInfo.chapter, 'isBottom': true};
+								this.currentInfo.isChapterEnd = true;
 								this.scrollToLower(args);
 							}
 						}
+						this.triggerCurrentChange(this.currentInfo)
 						this.preloadContent(this.currentInfo.chapter);
 					} else {
 						let pageItems = parent.getElementsByClassName('page-item');
