@@ -8,6 +8,7 @@
 		:color="color"
 		:bg-color="bgColor"
 		:slide="slide"
+		no-chapter
 		@loadmore="loadmoreContent"
 		@preload="preloadContent"
 		@currentChange="currentChange"
@@ -20,7 +21,7 @@
 		data() {
 			return {
 				pages: [],
-				pageType: 'real',
+				pageType: 'scroll',
 				scrollTop: 400,
 				fontsize: 15,
 				lineHeight: 15,
@@ -33,7 +34,7 @@
 			let contents = [{
 				chapter: 1,
 				start: 200,
-				content: this.getContent(1) + this.getContent(2) + this.getContent(3),
+				content: this.getContent(1),
 				isEnd: false
 			},{
 				chapter: 2,
@@ -49,6 +50,7 @@
 			const { page } = this.$refs;
 			page.init({
 				contents: contents,
+				start: 0,
 				current: 2
 			})
 		},
