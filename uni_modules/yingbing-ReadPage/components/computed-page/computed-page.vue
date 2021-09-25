@@ -48,6 +48,7 @@
 			return {
 				content: '',
 				isStart: false,
+				chapter: null,
 				start: null,
 				end: null,
 				resolve: null
@@ -65,15 +66,17 @@
 					lineHeight: this.lineHeight >= 5 ? parseInt(this.lineHeight) : 5,
 					pageType: this.pageType,
 					content: this.content,
+					chapter: this.chapter,
 					start: this.start,
 					end: this.end
 				};
 			}
 		},
 		methods: {
-			computed ({content, start, end}) {
+			computed ({content, chapter, start, end}) {
 				return new Promise((resolve) => {
 					this.content = content;
+					this.chapter = chapter || null;
 					this.start = start || null;
 					this.end = end || null;
 					this.isStart = true;
@@ -85,6 +88,7 @@
 				this.resolve = null;
 				this.isStart = false;
 				this.content = '';
+				this.chapter = null;
 				this.start = null;
 				this.end = null;
 			}
@@ -122,6 +126,8 @@
 				let pageHeight = this.computedPageProp.fontSize + this.computedPageProp.lineHeight;
 				let strs = [];
 				let page = {
+					chapter: this.computedPageProp.chapter,
+					type: 'text',
 					start: start,
 					end: 0,
 					isLastPage: false,

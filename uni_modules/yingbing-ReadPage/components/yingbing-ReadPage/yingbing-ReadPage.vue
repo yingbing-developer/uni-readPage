@@ -23,9 +23,26 @@
 		'background': bgColor}"
 		v-if="pageType == 'scroll'"></view> -->
 		
-		<scroll-page ref="scroll" class="scroll" @scrolltoUpper="scrolltoUpper" @scrolltoLower="scrolltoLower">
-			<view class="scroll-item" v-for="(item, index) in test" :key="index">
-				{{item}}
+		<scroll-page
+		ref="scroll"
+		class="scroll"
+		@scrolltoUpper="scrolltoUpper"
+		@scrolltoLower="scrolltoLower"
+		@scrollEnd="scrollEnd"
+		:style="{
+		'color': color,
+		'padding-left': slide + 'px',
+		'padding-right': slide + 'px',
+		'padding-top': `${topGap}px solid ${bgColor}`,
+		'padding-bottom': bottomGap + 'px',
+		'background': bgColor}">
+			<view class="scroll-item" :chapter="item.chapter" :start="item.start" :end="item.end" :data-id="item.chapter * 100000 + item.start" v-for="(item, index) in pages" :key="item.chapter * 100000 + item.start">
+				<p class="scroll-text"
+				:style="{
+				'font-size': fontSize + 'px',
+				'margin-top': lineHeight + 'px',
+				'height': fontSize + 'px',
+				}" v-for="(text, i) in item.text" :key="i">{{text}}</p>
 			</view>
 		</scroll-page>
 		
@@ -100,7 +117,7 @@
 				lower: false,//文章是否到最后面
 				restart: false,//是否重绘页面
 				preLoading: false,//等待预加载请求
-				test: [4,5,6,7,8,9]
+				pages: []
 			}
 		},
 		computed: {
@@ -122,15 +139,16 @@
 		},
 		methods: {
 			scrolltoUpper (e) {
-				this.test.unshift(3);
-				this.$nextTick(() => {
-					this.$refs.scroll.anchoring();
-				})
+				let pages = JSON.parse(JSON.stringify(this.pages));
+				for ( let i in pages ) {
+					pages[i].chapter = 1
+				}
+				this.pages = pages.concat(this.pages);
 			},
 			scrolltoLower (e) {
-				console.log(e);
+				let pages = JSON.parse(JSON.stringify(this.pages));
 			},
-			scroll (e) {
+			scrollEnd (e) {
 				console.log(e);
 			},
 			//初始化
@@ -139,10 +157,11 @@
 				// this.restart = true;
 				// this.getCatalog(this.contents[0].content);
 				this.$refs.computedPage.computed({
-					content: data.contents[0].content,
+					content: data.contents[1].content,
+					chapter: data.contents[1].chapter,
 					start: data.start
 				}).then((pages) => {
-					console.log(pages);
+					this.pages = pages;
 				})
 			},
 			//跳转
@@ -834,40 +853,14 @@
 		position: absolute;
 		left: 0;
 		top: 0;
+		box-sizing: border-box;
 	}
 	.scroll-item {
 		width: 100%;
-		height: 100%;
-		border: 1px solid #666;
 		box-sizing: border-box;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 40px;
 	}
-	.scroll-box {
-		position: absolute;
-		left: 0;
-		right: 0;
-		top: 0;
-		bottom: 0;
-		/* overflow-anchor: auto; */
-		overflow-y: auto;
-	}
-	.box {
-		width: 100%;
-		height: 100%;
-		box-sizing: border-box;
-		position: absolute;
-		left: 0;
-		top: 0;
-		overflow: hidden;
-	}
-	.content {
-		position: absolute;
-		left: 0;
-		top: 0;
-		width: 100%;
-		height: 100%;
+	.scroll-text {
+		font-family: "Microsoft YaHei", 微软雅黑;
+		white-space: pre-wrap;
 	}
 </style>

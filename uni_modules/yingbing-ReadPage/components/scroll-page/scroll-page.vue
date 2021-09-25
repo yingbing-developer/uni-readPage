@@ -1,8 +1,7 @@
 <template>
 	<view class="scroll-page" :prop="scrollPageProp" :change:prop="scrollPage.propChange" :id="'scrollPage' + dataId">
-		<!-- <view class="scroll-page-content" :id="'scrollPageContent' + dataId"> -->
-			<slot></slot>
-		<!-- </view> -->
+		<slot></slot>
+		<view class="scroll-ramove-node"></view>
 	</view>
 </template>
 
@@ -43,10 +42,8 @@
 				this.changeScrollTop = true;
 				this.scrollTop = scrollTop;
 			},
-			//内容防抖
-			anchoring () {
-				this.changeScrollTop = true;
-				this.scrollTop = -1;
+			scrollEnd (e) {
+				this.$emit('scrollEnd', e);
 			},
 			resetScroll () {
 				this.changeScrollTop = false;
@@ -60,11 +57,15 @@
 	let myScrollPageDom
 	export default {
 		data () {
-			scrollInfo: '';
+			return {
+				scrollInfo: '',
+				oldFirstChild: ''
+			}
 		},
 		mounted () {
 			this.initDom.bind(this);
 			this.bindScrollEvent();
+			this.bindDomAddListen();
 		},
 		methods: {
 			initDom () {
@@ -79,6 +80,51 @@
 						this.changeScrollTo(this.scrollPageProp.scrollTop);
 					}
 				}
+			},
+			//监听元素节点变动
+			bindDomAddListen () {
+				let MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+				let scroll = document.getElementById('scrollPage' + this.scrollPageProp.dataId);
+				this.oldFirstChild = scroll.firstChild ? scroll.firstChild : {'data-id': -1};
+				let observer = new MutationObserver((MutationRecord) => {
+				  // 指定的DOM节点(目标节点)发生变化时被调用
+				  let adNodes = [];
+				  let reNodes = [];
+				  const fistChild = scroll.firstChild;
+				  MutationRecord.forEach((mutation) => {
+				    mutation.addedNodes.forEach((node) => {
+						//只获取从前面增加的节点
+						if (parseInt(node.attributes['data-id'].value) < parseInt(this.oldFirstChild.getAttribute('data-id'))) adNodes.push(node);
+					})
+					mutation.removedNodes.forEach((node) => {
+						//只获取从前面移除的节点
+						if (parseInt(node.attributes['data-id'].value) < parseInt(fistChild.getAttribute('data-id'))) reNodes.push(node);
+					})
+				  });
+				  //当滚动区域前面增加或移除节点时，滚动位置会发生改变，需要重置滚动位置，以保证当前位置不变
+				  if ( adNodes.length > 0 ) {
+					  let height = 0;
+					  for ( let i in adNodes ) {
+						  height += adNodes[i].offsetHeight;
+					  }
+					  scroll.scrollTop = scroll.scrollTop + height
+				  }
+				  if ( reNodes.length > 0 ) {
+				  	let height = 0;
+					let removeBox = scroll.getElementsByClassName('scroll-ramove-node')[0];
+				  	for ( let i in reNodes ) {
+						removeBox.appendChild(reNodes[i]);//已经移除的节点不能获取到高度，所以先将节点插入页面指定的位置，再获取高度
+						height += reNodes[i].offsetHeight;
+				  	}
+					removeBox.innerHTML = '';//高度计算完毕后清空插入的已移除的节点
+				  	scroll.scrollTop = scroll.scrollTop - height;
+				  }
+				  this.oldFirstChild = fistChild;
+				});
+				observer.observe(scroll, {
+				  attributes: false,// 观察属性
+				  childList: true// 观察子节点
+				})
 			},
 			//绑定滚动事件
 			bindScrollEvent () {
@@ -96,17 +142,16 @@
 						if ( scroll.scrollTop <= 0 ) {//触顶
 							this.triggerScrolltoUpper(this.scrollInfo);
 						}
+						window.clearTimeout(this.scrollEndTimer)
+						this.scrollEndTimer = window.setTimeout(() => {
+							this.triggerScrollEnd(this.scrollInfo);
+						}, 300)
 					};
 				}
 			},
 			changeScrollTo (scrollTop) {
 				let scroll = document.getElementById('scrollPage' + this.scrollPageProp.dataId);
-				if ( scrollTop > -1 ) {
-					scroll.scrollTop = scrollTop;
-				} else {
-					scrollTop = scroll.scrollHeight - this.scrollInfo?.scrollHeight || 0;
-					scroll.scrollTop = scrollTop;
-				}
+				scroll.scrollTop = typeof scrollTop == 'Number' ? scrollTop : 0;
 				this.triggerResetScroll();
 			},
 			triggerResetScroll () {
@@ -132,6 +177,14 @@
 				// #ifdef H5
 				this.scrolltoLower(e);
 				// #endif
+			},
+			triggerScrollEnd (e) {
+				// #ifndef H5
+				this.$ownerInstance.callMethod('scrollEnd', e);
+				// #endif
+				// #ifdef H5
+				this.scrollEnd(e);
+				// #endif
 			}
 		}
 	}
@@ -143,8 +196,11 @@
 		height: 400rpx;
 		width: 100%;
 	}
-	.scroll-page-content {
-		min-height: 100%;
-		min-width: 100%;
+	.scroll-ramove-node {
+		position: fixed;
+		width: 100%;
+		height: 100%;
+		top: -100%;
+		left: 0;
 	}
 </style>
