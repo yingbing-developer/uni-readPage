@@ -26,6 +26,8 @@
 		<scroll-page
 		ref="scroll"
 		class="scroll"
+		:topGap="topGap"
+		:bottomGap="bottomGap"
 		@scrolltoUpper="scrolltoUpper"
 		@scrolltoLower="scrolltoLower"
 		@scrollEnd="scrollEnd"
@@ -36,13 +38,19 @@
 		'padding-top': `${topGap}px solid ${bgColor}`,
 		'padding-bottom': bottomGap + 'px',
 		'background': bgColor}">
-			<view class="scroll-item" :chapter="item.chapter" :start="item.start" :end="item.end" :data-id="item.chapter * 100000 + item.start" v-for="(item, index) in pages" :key="item.chapter * 100000 + item.start">
+			<view class="scroll-loading">
+				<p>正在加载内容...</p>
+			</view>
+			<view class="scroll-item" :type="item.type" :chapter="item.chapter" :start="item.start" :end="item.end" :data-id="item.dataId" v-for="(item, index) in pages" :key="item.dataId">
 				<p class="scroll-text"
 				:style="{
 				'font-size': fontSize + 'px',
 				'margin-top': lineHeight + 'px',
 				'height': fontSize + 'px',
 				}" v-for="(text, i) in item.text" :key="i">{{text}}</p>
+			</view>
+			<view class="scroll-loading">
+				<p>正在加载内容...</p>
 			</view>
 		</scroll-page>
 		
@@ -139,11 +147,26 @@
 		},
 		methods: {
 			scrolltoUpper (e) {
-				let pages = JSON.parse(JSON.stringify(this.pages));
-				for ( let i in pages ) {
-					pages[i].chapter = 1
-				}
-				this.pages = pages.concat(this.pages);
+				// this.pages.unshift({
+				// 	type: 'loading',
+				// 	text: '正在加载内容',
+				// 	chapter: this.pages[0].chapter,
+				// 	start: 0,
+				// 	end: 0,
+				// 	dataId: this.pages[0].chapter * 100000 - 1
+				// })
+				// setTimeout(() => {
+					// this.pages.shift();
+					// setTimeout(() => {
+						let pages = JSON.parse(JSON.stringify(this.pages));
+						for ( let i in pages ) {
+							pages[i].chapter = 1
+							pages[i].dataId = pages[i].chapter * 100000 + pages[i].start
+						}
+						this.pages = pages.concat(this.pages);
+					// }, 500)
+					
+				// }, 3000)
 			},
 			scrolltoLower (e) {
 				let pages = JSON.parse(JSON.stringify(this.pages));
@@ -858,6 +881,14 @@
 	.scroll-item {
 		width: 100%;
 		box-sizing: border-box;
+		padding: 1px 0;
+	}
+	.scroll-loading {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100%;
 	}
 	.scroll-text {
 		font-family: "Microsoft YaHei", 微软雅黑;

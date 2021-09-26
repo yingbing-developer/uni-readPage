@@ -128,6 +128,7 @@
 				let page = {
 					chapter: this.computedPageProp.chapter,
 					type: 'text',
+					dataId: this.computedPageProp.chapter * 100000 + start,
 					start: start,
 					end: 0,
 					isLastPage: false,

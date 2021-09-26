@@ -14,6 +14,16 @@
 					let mydate = new Date();
 					return 'cms' + mydate.getMinutes() + mydate.getSeconds() + mydate.getMilliseconds() + Math.round(Math.random() * 10000);
 				}
+			},
+			//页面上边距（单位px）
+			topGap: {
+				type: Number | String,
+				default: 10
+			},
+			//页面下边距（单位px）
+			bottomGap: {
+				type: Number | String,
+				default: 10
 			}
 		},
 		data () {
@@ -27,7 +37,9 @@
 				return {
 					dataId: this.dataId,
 					changeScrollTop: this.changeScrollTop,
-					scrollTop: this.scrollTop
+					scrollTop: this.scrollTop,
+					topGap: this.topGap,
+					bottomGap: this.bottomGap
 				}
 			}
 		},
@@ -83,42 +95,39 @@
 			},
 			//监听元素节点变动
 			bindDomAddListen () {
-				let MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
-				let scroll = document.getElementById('scrollPage' + this.scrollPageProp.dataId);
-				this.oldFirstChild = scroll.firstChild ? scroll.firstChild : {'data-id': -1};
-				let observer = new MutationObserver((MutationRecord) => {
+				const MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+				const scroll = document.getElementById('scrollPage' + this.scrollPageProp.dataId);
+				this.oldFirstChild = scroll.getElementsByClassName('scroll-item').length > 0 ? scroll.getElementsByClassName('scroll-item')[0] : scroll.firstChild;
+				const observer = new MutationObserver((MutationRecord) => {
 				  // 指定的DOM节点(目标节点)发生变化时被调用
 				  let adNodes = [];
 				  let reNodes = [];
-				  const fistChild = scroll.firstChild;
+				  const fistChild = scroll.getElementsByClassName('scroll-item')[0]
 				  MutationRecord.forEach((mutation) => {
-				    mutation.addedNodes.forEach((node) => {
-						//只获取从前面增加的节点
-						if (parseInt(node.attributes['data-id'].value) < parseInt(this.oldFirstChild.getAttribute('data-id'))) adNodes.push(node);
-					})
-					mutation.removedNodes.forEach((node) => {
-						//只获取从前面移除的节点
-						if (parseInt(node.attributes['data-id'].value) < parseInt(fistChild.getAttribute('data-id'))) reNodes.push(node);
-					})
+					for ( let i = 0; i < mutation.addedNodes.length; i++ ) {
+						if (parseInt(mutation.addedNodes[i].attributes['data-id'].value) < parseInt(this.oldFirstChild.getAttribute('data-id') || -1)) adNodes.push(mutation.addedNodes[i]);
+					}
+					for ( let i = 0; i < mutation.removedNodes.length; i++ ) {
+						if (parseInt(mutation.removedNodes[i].attributes['data-id'].value) < parseInt(fistChild.getAttribute('data-id') || -1)) reNodes.push(mutation.removedNodes[i]);
+					}
 				  });
+				  let height = 0;
+				  if ( reNodes.length > 0 ) {
+				  	let removeBox = scroll.getElementsByClassName('scroll-ramove-node')[0];
+				  	for ( let i in reNodes ) {
+				  		removeBox.appendChild(reNodes[i]);//已经移除的节点不能获取到高度，所以先将节点插入页面指定的位置，再获取高度
+				  		height += reNodes[i].offsetHeight;
+				  	}
+					height = -height;
+				  	removeBox.innerHTML = '';//高度计算完毕后清空插入的已移除的节点
+				  }
 				  //当滚动区域前面增加或移除节点时，滚动位置会发生改变，需要重置滚动位置，以保证当前位置不变
 				  if ( adNodes.length > 0 ) {
-					  let height = 0;
 					  for ( let i in adNodes ) {
 						  height += adNodes[i].offsetHeight;
 					  }
-					  scroll.scrollTop = scroll.scrollTop + height
 				  }
-				  if ( reNodes.length > 0 ) {
-				  	let height = 0;
-					let removeBox = scroll.getElementsByClassName('scroll-ramove-node')[0];
-				  	for ( let i in reNodes ) {
-						removeBox.appendChild(reNodes[i]);//已经移除的节点不能获取到高度，所以先将节点插入页面指定的位置，再获取高度
-						height += reNodes[i].offsetHeight;
-				  	}
-					removeBox.innerHTML = '';//高度计算完毕后清空插入的已移除的节点
-				  	scroll.scrollTop = scroll.scrollTop - height;
-				  }
+				  scroll.scrollTop = this.scrollInfo.scrollTop + scroll.getElementsByClassName('scroll-loading')[0].offsetHeight + height
 				  this.oldFirstChild = fistChild;
 				});
 				observer.observe(scroll, {
@@ -128,7 +137,7 @@
 			},
 			//绑定滚动事件
 			bindScrollEvent () {
-				let scroll = document.getElementById('scrollPage' + this.scrollPageProp.dataId);
+				const scroll = document.getElementById('scrollPage' + this.scrollPageProp.dataId);
 				if ( scroll ) {
 					scroll.onscroll = () => {
 						this.scrollInfo = {
@@ -179,6 +188,24 @@
 				// #endif
 			},
 			triggerScrollEnd (e) {
+				const scroll = document.getElementById('scrollPage' + this.scrollPageProp.dataId);
+				const scrollItems = scroll.getElementsByClassName('scroll-item');
+				const scrollTop = scroll.scrollTop + this.scrollPageProp.topGap + this.scrollPageProp.bottomGap;
+				for ( let i = 0; i < scrollItems.length; i++ ) {
+					let offsetTop = scrollItems[i].offsetTop;
+					let offsetBottom = scrollItems[i].offsetTop + scrollItems[i].offsetHeight;
+					if ( scrollTop >= offsetTop &&  scrollTop < offsetBottom ) {
+						e.dataId = parseInt(scrollItems[i].getAttribute('data-id'))
+					}
+				}
+				if ( !e.dataId ) {
+					if ( scrollTop < scrollItems[0].offsetTop ) {
+						e.dataId = parseInt(scrollItems[0].getAttribute('data-id'))
+					}
+					if ( scrollTop > scrollItems[scrollItems.length - 1].offsetTop + scrollItems[scrollItems.length - 1].offsetHeight ) {
+						e.dataId = parseInt(scrollItems[scrollItems.length - 1].getAttribute('data-id'))
+					}
+				}
 				// #ifndef H5
 				this.$ownerInstance.callMethod('scrollEnd', e);
 				// #endif
