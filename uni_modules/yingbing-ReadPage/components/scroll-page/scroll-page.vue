@@ -1,6 +1,6 @@
 <template>
 	<view class="scroll-page" :prop="scrollPageProp" :change:prop="scrollPage.propChange" :id="'scrollPage' + dataId">
-		<slot></slot>
+		<!-- <slot></slot> -->
 		<view class="scroll-ramove-node"></view>
 	</view>
 </template>
@@ -15,6 +15,12 @@
 					return 'cms' + mydate.getMinutes() + mydate.getSeconds() + mydate.getMilliseconds() + Math.round(Math.random() * 10000);
 				}
 			},
+			pages: {
+				type: Array,
+				default () {
+					return new Array;
+				}
+			},
 			//页面上边距（单位px）
 			topGap: {
 				type: Number | String,
@@ -24,6 +30,16 @@
 			bottomGap: {
 				type: Number | String,
 				default: 10
+			},
+			//字体大小（单位px）
+			fontSize: {
+				type: String | Number,
+				default: 15
+			},
+			//行间距（单位px）
+			lineHeight: {
+				type: Number | String,
+				default: 15
 			}
 		},
 		data () {
@@ -39,7 +55,10 @@
 					changeScrollTop: this.changeScrollTop,
 					scrollTop: this.scrollTop,
 					topGap: this.topGap,
-					bottomGap: this.bottomGap
+					bottomGap: this.bottomGap,
+					fontSize: this.fontSize,
+					lineHeight: this.lineHeight,
+					pages: this.pages
 				}
 			}
 		},
@@ -77,7 +96,7 @@
 		mounted () {
 			this.initDom.bind(this);
 			this.bindScrollEvent();
-			this.bindDomAddListen();
+			// this.bindDomAddListen();
 		},
 		methods: {
 			initDom () {
@@ -92,6 +111,15 @@
 						this.changeScrollTo(this.scrollPageProp.scrollTop);
 					}
 				}
+				if ( newValue.pages != oldValue.pages ) {
+					this.pagesChange(newValue.pages, oldValue.pages);
+				}
+			},
+			pagesChange (newValue, oldValue) {
+				let arr = newValue.concat(oldValue);
+				const unique = [...new Set(arr)];
+				console.log(arr)
+				console.log(unique)
 			},
 			//监听元素节点变动
 			bindDomAddListen () {
@@ -158,6 +186,25 @@
 					};
 				}
 			},
+			createScrollItem (info) {
+				const div = document.createElement('div');
+				div.setAttribute('class', 'scroll-item')
+				div.setAttribute('type', info.type)
+				div.setAttribute('chapter', info.chapter)
+				div.setAttribute('start', info.start)
+				div.setAttribute('end', info.end)
+				div.setAttribute('dataId', info.dataId)
+				return div;
+			},
+			createScrollText (text) {
+				const p = document.createElement('p');
+				p.setAttribute('class', 'scroll-text')
+				p.style.fontSize = this.scrollPageProp.fontSize + 'px'
+				p.style.marginTop = this.scrollPageProp.lineHeight + 'px'
+				p.style.height = this.scrollPageProp.fontSize + 'px'
+				p.innerHTML = text;
+				return p;
+			},
 			changeScrollTo (scrollTop) {
 				let scroll = document.getElementById('scrollPage' + this.scrollPageProp.dataId);
 				scroll.scrollTop = typeof scrollTop == 'Number' ? scrollTop : 0;
@@ -222,6 +269,10 @@
 		overflow-y: auto;
 		height: 400rpx;
 		width: 100%;
+	}
+	.scroll-text {
+		font-family: "Microsoft YaHei", 微软雅黑;
+		white-space: pre-wrap;
 	}
 	.scroll-ramove-node {
 		position: fixed;
