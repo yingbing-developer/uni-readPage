@@ -8,6 +8,7 @@
 		:color="color"
 		:bg-color="bgColor"
 		:slide="slide"
+		:enablePreload="enablePreload"
 		no-chapter
 		@loadmore="loadmoreContent"
 		@preload="preloadContent"
@@ -21,37 +22,28 @@
 		data() {
 			return {
 				pages: [],
-				pageType: 'scroll',
+				pageType: 'real',
 				scrollTop: 400,
 				fontsize: 15,
 				lineHeight: 15,
 				color: '#333',
 				slide: 40,
-				bgColor: '#fcd281'
+				bgColor: '#fcd281',
+				enablePreload: true
 			}
 		},
 		onReady() {
 			let contents = [{
-				chapter: 1,
-				start: 200,
-				content: this.getContent(1),
-				isEnd: false
-			},{
-				chapter: 2,
-				start: 294,
-				content: this.getContent(2),
-				isEnd: false
-			},{
 				chapter: 3,
-				start: 100,
 				content: this.getContent(3),
+				isStart: false,
 				isEnd: false
 			}]
 			const { page } = this.$refs;
 			page.init({
 				contents: contents,
-				start: 0,
-				current: 2
+				start: 730,
+				currentChapter: 3
 			})
 		},
 		methods: {
@@ -80,17 +72,14 @@
 			changeChapter () {
 				let contents = [{
 					chapter: 3,
-					start: 0,
 					content: this.getContent(3),
 					isEnd: false
 				},{
 					chapter: 4,
-					start: 0,
 					content: this.getContent(4),
 					isEnd: false
 				},{
 					chapter: 5,
-					start: 0,
 					content: this.getContent(5),
 					isEnd: false
 				}]
@@ -101,28 +90,34 @@
 					current: 5
 				})
 			},
-			loadmoreContent (chapter, next, error) {
-				console.log(chapter);
-				next({
-					chapter: chapter,
-					start: 0,
-					content: this.getContent(chapter),
-					isEnd: chapter == 7
-				});
-			},
-			preloadContent (chapters, next, error) {
-				let contents = []
-				for ( let i in chapters ) {
-					contents.push({
-						chapter: chapters[i],
-						start: 0,
-						content: this.getContent(chapters[i]),
-						isEnd: chapters[i] == 7
-					})
-				}
+			loadmoreContent (chapter, callback) {
 				setTimeout(() => {
-					next(contents);
-				}, 500)
+					callback('success', {
+						chapter: chapter,
+						content: this.getContent(chapter),
+						isStart: chapter == 1,
+						isEnd: chapter == 7
+					});
+					// callback('fail');
+					// callback('timeout');
+				}, 2000)
+			},
+			preloadContent (chapters, callback) {
+				setTimeout(() => {
+					let contents = []
+					for ( let i in chapters ) {
+						contents.push({
+							chapter: chapters[i],
+							start: 0,
+							content: this.getContent(chapters[i]),
+							isStart: chapters[i] == 1,
+							isEnd: chapters[i] == 7
+						})
+					}
+					callback('success', contents);
+					// callback('fail');
+					// callback('timeout');
+				}, 2000)
 			},
 			getContent (chapter = 1) {
 return `第${chapter}章

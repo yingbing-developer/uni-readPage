@@ -1,70 +1,49 @@
 <template>
 	<view class="page">
+		
 		<!-- 翻页模式 -->
-		<!-- <view class="box">
-			<view class="content"
-			:id="'content' + dataId"
-			v-if="pageType != 'scroll'"
-			@touchstart="page.pageTouchstart"
-			@touchmove="page.pageTouchmove"
-			@touchend="page.pageTouchend"></view>
-			<view class="content" style="z-index: -1000;" :id="'computed' + dataId"></view>
-		</view> -->
+		<flip-page
+		v-if="pageType != 'scroll'"
+		ref="filpPage"
+		:page-type="pageType"
+		:font-size="prop.fontSize"
+		:line-height="prop.lineHeight"
+		:color="color"
+		:bg-color="bgColor"
+		:slide="prop.slide"
+		:topGap="prop.topGap"
+		:bottomGap="prop.bottomGap"
+		:enablePreload="enablePreload"
+		@loadmore="loadmore"
+		@preload="preload"
+		@scrollEnd="scrollEnd">
+		</flip-page>
+		<!-- 翻页模式 -->
+		
 		<!-- 滚动模式 -->
-		<!-- <view
-		:id="'scroll-box' + dataId"
-		class="scroll-box"
-		:style="{
-		'color': color,
-		'padding-left': slide + 'px',
-		'padding-right': slide + 'px',
-		'border-top': `${topGap}px solid ${bgColor}`,
-		'padding-bottom': bottomGap + 'px',
-		'background': bgColor}"
-		v-if="pageType == 'scroll'"></view> -->
-		
 		<scroll-page
-		ref="scroll"
-		class="scroll"
-		:topGap="topGap"
-		:bottomGap="bottomGap"
-		:fontSize="fontSize"
-		:lineHeight="lineHeight"
-		:pages="pages"
-		@scrolltoUpper="scrolltoUpper"
-		@scrolltoLower="scrolltoLower"
-		@scrollEnd="scrollEnd"
-		:style="{
-		'color': color,
-		'padding-left': slide + 'px',
-		'padding-right': slide + 'px',
-		'padding-top': `${topGap}px solid ${bgColor}`,
-		'padding-bottom': bottomGap + 'px',
-		'background': bgColor}">
+		v-if="pageType == 'scroll'"
+		ref="scrollPage"
+		:page-type="pageType"
+		:font-size="prop.fontSize"
+		:line-height="prop.lineHeight"
+		:color="color"
+		:bg-color="bgColor"
+		:slide="prop.slide"
+		:topGap="prop.topGap"
+		:bottomGap="prop.bottomGap"
+		:enablePreload="enablePreload"
+		@loadmore="loadmore"
+		@preload="preload"
+		@scrollEnd="scrollEnd">
 		</scroll-page>
-		
-		<computed-page
-		ref="computedPage"
-		:pageType="pageType"
-		:fontSize="fontSize"
-		:lineHeight="lineHeight"
-		:slide="slide"
-		:topGap="topGap"
-		:bottomGap="bottomGap"></computed-page>
+		<!-- 滚动模式 -->
 	</view>
 </template>
 
 <script>
 	export default {
 		props: {
-			//传入唯一标识动态命名ID用于获取dom对象（可选）默认已经生成
-			dataId: {
-				type: String,
-				default () {
-					let mydate = new Date();
-					return 'cms' + mydate.getMinutes() + mydate.getSeconds() + mydate.getMilliseconds() + Math.round(Math.random() * 10000);
-				}
-			},
 			//字体颜色
 			color: {
 				type: String,
@@ -104,77 +83,49 @@
 			bottomGap: {
 				type: Number | String,
 				default: 10
+			},
+			//开启预加载
+			enablePreload: {
+				type: Boolean,
+				default: false
 			}
 		},
 		data () {
 			return {
-				contents: [],
-				loading: false,//等待内容请求
-				upper: false,//文章是否到最前面
-				lower: false,//文章是否到最后面
-				restart: false,//是否重绘页面
-				preLoading: false,//等待预加载请求
-				pages: []
+				pageInfo: {
+					dataId: -1
+				}
 			}
 		},
 		computed: {
-			pageProp () {
+			prop () {
 				return {
-					contents: this.contents,
-					dataId: this.dataId,
-					color: this.color,
-					bgColor: this.bgColor,
 					slide: this.slide > 0 ? parseInt(this.slide) : 0,
 					topGap: this.topGap > 0 ? parseInt(this.topGap) : 0,
 					bottomGap: this.bottomGap > 0 ? parseInt(this.bottomGap) : 0,
 					fontSize: this.fontSize >= 12 ? parseInt(this.fontSize) : 12,//字体大小最小只能到12px，因为谷歌浏览器最小只支持12px
-					pageType: this.pageType || 'none',
-					lineHeight: this.lineHeight >= 5 ? parseInt(this.lineHeight) : 5,
-					restart: this.restart
-				};
+					lineHeight: this.lineHeight >= 5 ? parseInt(this.lineHeight) : 5
+				}
 			}
 		},
 		methods: {
-			scrolltoUpper (e) {
-				// this.pages.unshift({
-				// 	type: 'loading',
-				// 	text: '正在加载内容',
-				// 	chapter: this.pages[0].chapter,
-				// 	start: 0,
-				// 	end: 0,
-				// 	dataId: this.pages[0].chapter * 100000 - 1
-				// })
-				// setTimeout(() => {
-					// this.pages.shift();
-					// setTimeout(() => {
-						let pages = JSON.parse(JSON.stringify(this.pages));
-						for ( let i in pages ) {
-							pages[i].chapter = 1
-							pages[i].dataId = pages[i].chapter * 100000 + pages[i].start
-						}
-						this.pages = pages.concat(this.pages);
-					// }, 500)
-					
-				// }, 3000)
+			loadmore (chapter, callback) {
+				this.$emit('loadmore', chapter, callback);
 			},
-			scrolltoLower (e) {
-				let pages = JSON.parse(JSON.stringify(this.pages));
+			preload (chapters, callback) {
+				this.$emit('preload', chapters, callback);
 			},
 			scrollEnd (e) {
-				console.log(e);
+				if ( e.dataId != this.pageInfo.dataId ) this.$emit('currentChange', e) //抛出阅读页面改变事件
+				this.pageInfo = e;
 			},
 			//初始化
 			init (data) {
-				// this.contents = data.contents || this.contents;
-				// this.restart = true;
-				// this.getCatalog(this.contents[0].content);
-				this.$refs.computedPage.computed({
-					content: data.contents[1].content,
-					chapter: data.contents[1].chapter,
-					start: data.start
-				}).then((pages) => {
-					this.pages = pages;
-				})
+				if ( this.pageType == 'scroll' ) {
+					this.$refs.scrollPage.init(data)
+				} else {
+					this.$refs.filpPage.init(data)
+				}
 			},
 			//跳转
 			change (data) {
@@ -186,10 +137,6 @@
 					title: e.title,
 					icon: 'none'
 				})
-			},
-			//抛出阅读页面改变事件
-			currentChange (e) {
-				this.$emit('currentChange', e.currentInfo);
 			},
 			//重置部分变量，方便下次使用
 			resetPageProp () {
@@ -218,29 +165,5 @@
 		width: 100vw;
 		height: 100vh;
 		position: relative;
-	}
-	.scroll {
-		width: 100%;
-		height: 100%;
-		position: absolute;
-		left: 0;
-		top: 0;
-		box-sizing: border-box;
-	}
-	.scroll-item {
-		width: 100%;
-		box-sizing: border-box;
-		padding: 1px 0;
-	}
-	.scroll-loading {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 100%;
-		height: 100%;
-	}
-	.scroll-text {
-		font-family: "Microsoft YaHei", 微软雅黑;
-		white-space: pre-wrap;
 	}
 </style>

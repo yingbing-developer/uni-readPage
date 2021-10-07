@@ -49,8 +49,6 @@
 				content: '',
 				isStart: false,
 				chapter: null,
-				start: null,
-				end: null,
 				resolve: null
 			}
 		},
@@ -66,19 +64,15 @@
 					lineHeight: this.lineHeight >= 5 ? parseInt(this.lineHeight) : 5,
 					pageType: this.pageType,
 					content: this.content,
-					chapter: this.chapter,
-					start: this.start,
-					end: this.end
+					chapter: this.chapter
 				};
 			}
 		},
 		methods: {
-			computed ({content, chapter, start, end}) {
+			computed ({content, chapter}) {
 				return new Promise((resolve) => {
 					this.content = content;
 					this.chapter = chapter || null;
-					this.start = start || null;
-					this.end = end || null;
 					this.isStart = true;
 					this.resolve = resolve;
 				})
@@ -180,7 +174,7 @@
 			},
 			//参数改变
 			propChange (newValue, oldValue) {
-				if ( newValue.isStart != oldValue.isStart ) {//重绘页面通知
+				if ( newValue.isStart != oldValue.isStart ) {
 					if ( newValue.isStart ) {
 						this.getPages();
 					}
