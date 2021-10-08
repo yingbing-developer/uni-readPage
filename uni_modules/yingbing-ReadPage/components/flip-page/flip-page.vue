@@ -13,8 +13,20 @@
 					'font-size': fontSize + 'px',
 					'z-index': -item.dataId
 				}">
-					<p class="flip-text" :style="{'margin-top': lineHeight + 'px', height: fontSize + 'px'}"
-						v-for="(text, i) in item.text" :key="i">{{text}}</p>
+					<template v-if="item.type == 'text'">
+						<p class="flip-text" :style="{'margin-top': lineHeight + 'px', height: fontSize + 'px'}"
+							v-for="(text, i) in item.text" :key="i">{{text}}</p>
+					</template>
+					<template v-else-if="item.type == 'loading'">
+						<div class="loading">
+							<page-refresh>正在加载内容</page-refresh>
+						</div>
+					</template>
+					<template v-else>
+						<div class="loading">
+							{{item.type == 'top' ? '已经到第一章了' : '已经到最后一章了'}}
+						</div>
+					</template>
 				</div>
 				<div class="flip-item-bg" :style="{background: bgColor}"></div>
 				<div class="flip-item-shadow"></div>
@@ -120,7 +132,6 @@
 					if (nextIndex > -1) {
 						contents.push(this.contents[nextIndex])
 					}
-
 					let arr = [];
 					const dowhile = (i) => {
 						let item = contents[i];
@@ -133,6 +144,20 @@
 							}
 							arr = arr.concat(pages)
 							if (i == contents.length - 1) {
+								arr.unshift({
+									chapter: contents[0].chapter,
+									type: contents[0].isStart ? 'top' : 'loading',
+									dataId: arr[0].dataId - 1,
+									start: 0,
+									end: 0
+								})
+								arr.push({
+									chapter: item.chapter,
+									type: item.isEnd ? 'bottom' : 'loading',
+									dataId: arr[arr.length - 1].dataId + 1,
+									start: 0,
+									end: 0
+								})
 								this.pages = arr;
 								this.$nextTick(() => {
 									this.initStatus = true;
@@ -146,7 +171,7 @@
 						})
 					}
 					dowhile(0)
-				}, 20)
+				}, 50)
 			},
 			//加载上个章节
 			scrolltoUpper(chapter) {
@@ -227,26 +252,6 @@
 						content: content.content,
 						chapter: content.chapter
 					}).then((pages) => {
-						// if ( content.isStart ) {
-						// 	pages.unshift({
-						// 		type: 'top',
-						// 		text: this.title,
-						// 		chapter: content.chapter,
-						// 		start: 0,
-						// 		end: 0,
-						// 		dataId: parseInt(pages[0].dataId) - 1
-						// 	})
-						// }
-						// if ( content.isEnd ) {
-						// 	pages.push({
-						// 		type: 'bottom',
-						// 		text: '已经到结尾了！',
-						// 		chapter: content.chapter,
-						// 		start: 0,
-						// 		end: 0,
-						// 		dataId: parseInt(pages[pages.length - 1].dataId) + 1
-						// 	})
-						// }
 						resolve(pages);
 					})
 				}).catch(() => {
@@ -255,18 +260,36 @@
 			},
 			computedPage(e) {
 				this.computedChapter(e.content).then((pages) => {
-					let pagesSync = e.type == 'prev' ? pages.concat(this.pages) : this.pages.concat(pages);
 					let arr = [];
+					let newPages = [];
+					const pagesSync = e.type == 'prev' ? pages.concat(this.pages) : this.pages.concat(pages);
 					pagesSync.forEach(item => {
 						if (arr.indexOf(item.chapter) == -1) arr.push(item.chapter)
 					})
 					if (arr.length > 3) {
 						let reChapter = e.type == 'prev' ? pagesSync[pagesSync.length - 1].chapter : pagesSync[0]
 							.chapter;
-						this.pages = pagesSync.filter(item => item.chapter != reChapter);
+						newPages = pagesSync.filter(item => item.chapter != reChapter && item.type == 'text');
 					} else {
-						this.pages = pagesSync;
+						newPages = pagesSync.filter(item => item.type == 'text');
 					}
+					const prevIndex = this.contents.findIndex(content => content.chapter == newPages[0].chapter);
+					const nextIndex = this.contents.findIndex(content => content.chapter == newPages[newPages.length - 1].chapter);
+					newPages.unshift({
+						chapter: this.contents[prevIndex].chapter,
+						type: this.contents[prevIndex].isStart ? 'top' : 'loading',
+						dataId: newPages[0].dataId - 1,
+						start: 0,
+						end: 0
+					})
+					newPages.push({
+						chapter: this.contents[nextIndex].chapter,
+						type: this.contents[nextIndex].isEnd ? 'bottom' : 'loading',
+						dataId: newPages[newPages.length - 1].dataId + 1,
+						start: 0,
+						end: 0
+					})
+					this.pages = newPages;
 				});
 			},
 			scrollEnd(e) {
@@ -684,6 +707,18 @@
 		top: 0;
 		left: 0;
 		box-sizing: border-box;
+	}
+	
+	.loading {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+		top: 0;
+		left: 0;
+		box-sizing: border-box;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.flip-item-bg {
