@@ -3,8 +3,8 @@
 		:style="{background: bgColor}" @touchstart="flipPage.pageTouchstart" @touchmove="flipPage.pageTouchmove"
 		@touchend="flipPage.pageTouchend">
 		<div class="flip-content">
-			<div class="flip-item" :chapter="item.chapter" :start="item.start" :end="item.end" :dataId="item.dataId"
-				:class="{'flip-item-actived': currentPageDataId == item.dataId}" v-for="(item, index) in pages"
+			<div class="flip-item" :chapter="item.chapter" :start="item.start" :end="item.end" :dataId="item.dataId" :type="item.type"
+				:class="{'flip-item-actived': currentPageDataId == item.dataId, 'flip-item-prev': index < pages.length - 1 ? currentPageDataId == pages[index + 1].dataId : false}" v-for="(item, index) in pages"
 				:key="item.dataId">
 				<div class="flip-item-content" :style="{
 					padding: `${topGap}px ${slide}px ${bottomGap}px ${slide}px`,
@@ -17,7 +17,7 @@
 						<p class="flip-text" :style="{'margin-top': lineHeight + 'px', height: fontSize + 'px'}"
 							v-for="(text, i) in item.text" :key="i">{{text}}</p>
 					</template>
-					<template v-else-if="item.type == 'loading'">
+					<template v-else-if="item.type == 'prevLoading' || item.type == 'nextLoading'">
 						<div class="loading">
 							<page-refresh>正在加载内容</page-refresh>
 						</div>
@@ -146,14 +146,14 @@
 							if (i == contents.length - 1) {
 								arr.unshift({
 									chapter: contents[0].chapter,
-									type: contents[0].isStart ? 'top' : 'loading',
+									type: contents[0].isStart ? 'top' : 'prevLoading',
 									dataId: arr[0].dataId - 1,
 									start: 0,
 									end: 0
 								})
 								arr.push({
 									chapter: item.chapter,
-									type: item.isEnd ? 'bottom' : 'loading',
+									type: item.isEnd ? 'bottom' : 'nextLoading',
 									dataId: arr[arr.length - 1].dataId + 1,
 									start: 0,
 									end: 0
@@ -277,14 +277,14 @@
 					const nextIndex = this.contents.findIndex(content => content.chapter == newPages[newPages.length - 1].chapter);
 					newPages.unshift({
 						chapter: this.contents[prevIndex].chapter,
-						type: this.contents[prevIndex].isStart ? 'top' : 'loading',
+						type: this.contents[prevIndex].isStart ? 'top' : 'prevLoading',
 						dataId: newPages[0].dataId - 1,
 						start: 0,
 						end: 0
 					})
 					newPages.push({
 						chapter: this.contents[nextIndex].chapter,
-						type: this.contents[nextIndex].isEnd ? 'bottom' : 'loading',
+						type: this.contents[nextIndex].isEnd ? 'bottom' : 'nextLoading',
 						dataId: newPages[newPages.length - 1].dataId + 1,
 						start: 0,
 						end: 0
@@ -294,6 +294,12 @@
 			},
 			scrollEnd(e) {
 				this.$emit('scrollEnd', e);
+			},
+			showToast (e) {
+				uni.showToast({
+					title: e.title,
+					icon: 'none'
+				})
 			},
 			resetPulldownStatus() {
 				this.pulldownStatus = 'none';
@@ -314,6 +320,13 @@
 		data() {
 			return {
 				pageWating: false,
+				pageEl: null,
+				pageDirection: '',
+				touchstart: {
+					x: 0,
+					y: 0
+				},
+				moveX: 0,
 				viewWidth: 0,
 				viewHeight: 0
 			}
@@ -365,116 +378,54 @@
 				shadow.style.boxShadow = '0 0 60px ' + (this.flipPageProp.pageType == 'real' ? Math.abs(lateX) > 30 ? 30 :
 					Math.abs(lateX) : 0) + 'px rgba(0,0,0,0.5)';
 			},
-			//监听下拉加载状态变化
-			pulldownStatusChange(newValue) {
-				switch (newValue) {
-					case 'success':
-						bs.finishPullDown();
-						bs.enable();
-						break;
-					case 'fail':
-						document.getElementsByClassName('pulldown-loading')[0].style.display = 'none';
-						document.getElementsByClassName('pulldown-finish')[0].innerHTML = '------请求内容失败------'
-						document.getElementsByClassName('pulldown-finish')[0].style.display = 'block'
-						window.setTimeout(() => {
-							bs.finishPullDown();
-							bs.enable();
-							window.setTimeout(() => {
-								document.getElementsByClassName('pulldown-loading')[0].style.display =
-									'flex';
-								document.getElementsByClassName('pulldown-finish')[0].innerHTML = ''
-								document.getElementsByClassName('pulldown-finish')[0].style.display =
-									'none'
-							}, 50)
-						}, TIME_WATING)
-						break;
-					case 'timeout':
-						document.getElementsByClassName('pulldown-loading')[0].style.display = 'none';
-						document.getElementsByClassName('pulldown-finish')[0].innerHTML = '------请求超时------'
-						document.getElementsByClassName('pulldown-finish')[0].style.display = 'block'
-						window.setTimeout(() => {
-							bs.finishPullDown();
-							bs.enable();
-							window.setTimeout(() => {
-								document.getElementsByClassName('pulldown-loading')[0].style.display =
-									'flex';
-								document.getElementsByClassName('pulldown-finish')[0].innerHTML = ''
-								document.getElementsByClassName('pulldown-finish')[0].style.display =
-									'none'
-							}, 50)
-						}, TIME_WATING)
-						break;
-					default:
-						console.log('重置pulldown')
-				}
-				this.triggerResetPulldownStatus();
-			},
-			//监听上拉加载状态变化
-			pullupStatusChange(newValue) {
-				switch (newValue) {
-					case 'success':
-						bs.finishPullUp();
-						bs.enable();
-						break;
-					case 'fail':
-						bs.enable();
-						document.getElementsByClassName('pullup-loading')[0].style.display = 'none';
-						document.getElementsByClassName('pullup-finish')[0].innerHTML = '------请求失败,点击重试------'
-						document.getElementsByClassName('pullup-finish')[0].style.display = 'block'
-						document.getElementsByClassName('pullup-finish')[0].addEventListener('touchend', function() {
-							bs.finishPullUp();
-							document.getElementsByClassName('pullup-loading')[0].style.display = 'flex';
-							document.getElementsByClassName('pullup-finish')[0].innerHTML = ''
-							document.getElementsByClassName('pullup-finish')[0].style.display = 'none';
-							bs.autoPullUpLoad();
-							document.getElementsByClassName('pullup-finish')[0].removeEventListener('touchend',
-								function() {}, false);
-						}, false)
-						break;
-					case 'timeout':
-						bs.enable();
-						document.getElementsByClassName('pullup-loading')[0].style.display = 'none';
-						document.getElementsByClassName('pullup-finish')[0].innerHTML = '------请求超时,点击重试------'
-						document.getElementsByClassName('pullup-finish')[0].style.display = 'block'
-						document.getElementsByClassName('pullup-finish')[0].addEventListener('touchend', function() {
-							bs.finishPullUp();
-							document.getElementsByClassName('pullup-loading')[0].style.display = 'flex';
-							document.getElementsByClassName('pullup-finish')[0].innerHTML = ''
-							document.getElementsByClassName('pullup-finish')[0].style.display = 'none';
-							bs.autoPullUpLoad();
-							document.getElementsByClassName('pullup-finish')[0].removeEventListener('touchend',
-								function() {}, false);
-						}, false)
-						break;
-					default:
-						console.log('重置pullup')
-				}
-				this.triggerResetPullupStatus();
-			},
-			diff(obj1, obj2) {
-				var o1 = obj1 instanceof Object;
-				var o2 = obj2 instanceof Object;
-				// 判断是不是对象
-				if (!o1 || !o2) {
-					return obj1 === obj2;
-				}
-
-				//Object.keys() 返回一个由对象的自身可枚举属性(key值)组成的数组,
-				//例如：数组返回下表：let arr = ["a", "b", "c"];console.log(Object.keys(arr))->0,1,2;
-				if (Object.keys(obj1).length !== Object.keys(obj2).length) {
-					return false;
-				}
-
-				for (var o in obj1) {
-					var t1 = obj1[o] instanceof Object;
-					var t2 = obj2[o] instanceof Object;
-					if (t1 && t2) {
-						return this.diff(obj1[o], obj2[o]);
-					} else if (obj1[o] !== obj2[o]) {
-						return false;
+			getPageActived (value) {
+				const flip = document.getElementById('flipPage')
+				const pageActived = flip.getElementsByClassName('flip-item-actived')[0]
+				const pageActivedPrev = flip.getElementsByClassName('flip-item-prev')[0]
+				if ( pageActived.getAttribute('type') == 'bottom' ) {
+					if ( value == 0 ) {
+						this.triggerShowToast({
+							title: '已经到最后了'
+						})
+						return false
+					} else {
+						return pageActivedPrev
+					}
+				} else if ( pageActived.getAttribute('type') == 'top' ) {
+					if ( value < 0 ) {
+						this.triggerShowToast({
+							title: '已经到最前面了'
+						})
+						return false
+					} else {
+						return pageActived
+					}
+				} else if ( pageActived.getAttribute('type') == 'prevLoading' ) {
+					if ( value < 0 ) {
+						this.triggerShowToast({
+							title: '请等待内容加载'
+						})
+						return false
+					} else {
+						return pageActived
+					}
+				} else if ( pageActived.getAttribute('type') == 'nextLoading' ) {
+					if ( value == 0 ) {
+						this.triggerShowToast({
+							title: '请等待内容加载'
+						})
+						return false
+					} else {
+						return pageActivedPrev
+					}
+				} else {
+					if ( value == 0 ) {
+						return pageActived
+					} else {
+						return pageActivedPrev
 					}
 				}
-				return true;
+				return false;
 			},
 			pageTouchstart(e) {
 				if (this.pageWating) {
@@ -511,7 +462,7 @@
 						if (this.touchstart.x > (this.viewWidth / 4) * 3 || this.touchstart.x < (this.viewWidth / 4)) {
 							this.moveX = touch.pageX - this.touchstart.x;
 						}
-						this.pageAnimation(this.moveX, rotateZ);
+						this.pageAnimation(this.pageEl, this.pageDirection, this.moveX, rotateZ);
 					}
 				}
 			},
@@ -584,22 +535,6 @@
 				pageInfo.totalPage = this.pagesSync.filter(item => item.chapter == pageInfo.chapter).length;
 				return pageInfo
 			},
-			triggerResetPulldownStatus() {
-				// #ifndef H5
-				this.$ownerInstance.callMethod('resetPulldownStatus');
-				// #endif
-				// #ifdef H5
-				this.resetPulldownStatus();
-				// #endif
-			},
-			triggerResetPullupStatus() {
-				// #ifndef H5
-				this.$ownerInstance.callMethod('resetPullupStatus');
-				// #endif
-				// #ifdef H5
-				this.resetPullupStatus();
-				// #endif
-			},
 			triggerComputedPage(e) {
 				// #ifndef H5
 				this.$ownerInstance.callMethod('computedPage', e);
@@ -647,6 +582,14 @@
 				// #endif
 				// #ifdef H5
 				this.resetInitStatus();
+				// #endif
+			},
+			triggerShowToast(e) {
+				// #ifndef H5
+				this.$ownerInstance.callMethod('showToast', e);
+				// #endif
+				// #ifdef H5
+				this.showToast(e);
 				// #endif
 			},
 			triggerResetPage() {
@@ -728,6 +671,7 @@
 		top: 50%;
 		left: 100%;
 		transform: translateY(-50%);
+		box-shadow: -5px 0 20px rgba(0,0,0,0.1);
 	}
 
 	.flip-item-shadow {
