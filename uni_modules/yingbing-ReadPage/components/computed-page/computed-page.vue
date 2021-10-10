@@ -1,5 +1,5 @@
 <template>
-	<view class="computed-page" :prop="computedPageProp" :change:prop="computedPage.propChange" :id="'computedPage' + dataId"></view>
+	<div class="computed-page" :prop="computedPageProp" :change:prop="computedPage.propChange" :id="'computedPage' + dataId"></div>
 </template>
 
 <script>

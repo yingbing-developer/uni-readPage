@@ -3,19 +3,28 @@
 		:style="{background: bgColor}" @touchstart="flipPage.pageTouchstart" @touchmove="flipPage.pageTouchmove"
 		@touchend="flipPage.pageTouchend">
 		<div class="flip-content">
-			<div class="flip-item" :chapter="item.chapter" :start="item.start" :end="item.end" :dataId="item.dataId" :type="item.type"
-				:class="{'flip-item-actived': currentPageDataId == item.dataId, 'flip-item-prev': index < pages.length - 1 ? currentPageDataId == pages[index + 1].dataId : false}" v-for="(item, index) in pages"
-				:key="item.dataId">
+			<div class="flip-item"
+			:chapter="item.chapter"
+			:start="item.start"
+			:end="item.end"
+			:dataId="item.dataId"
+			:type="item.type"
+			:style="{'z-index': -parseInt(item.dataId)}"
+			:class="{
+				'flip-item-actived': currentPageDataId == item.dataId,
+				'flip-item-prev': index < pages.length - 1 ? currentPageDataId == pages[index + 1].dataId : false
+			}"
+			v-for="(item, index) in pages"
+			:key="item.dataId">
 				<div class="flip-item-content" :style="{
 					padding: `${topGap}px ${slide}px ${bottomGap}px ${slide}px`,
 					background: bgColor,
 					color: color,
-					'font-size': fontSize + 'px',
-					'z-index': -item.dataId
+					'font-size': fontSize + 'px'
 				}">
 					<template v-if="item.type == 'text'">
 						<p class="flip-text" :style="{'margin-top': lineHeight + 'px', height: fontSize + 'px'}"
-							v-for="(text, i) in item.text" :key="i">{{text}}</p>
+							v-for="(text, i) in item.text" :key="item.dataId + '_' + i">{{text}}</p>
 					</template>
 					<template v-else-if="item.type == 'prevLoading' || item.type == 'nextLoading'">
 						<div class="loading">
@@ -91,19 +100,14 @@
 				contents: [],
 				pages: [],
 				currentPageDataId: -1,
-				initStatus: false,
-				pullupStatus: 'none',
-				pulldownStatus: 'none'
+				initStatus: false
 			}
 		},
 		computed: {
 			flipPageProp() {
 				return {
-					currentPageDataId: this.currentPageDataId,
 					initStatus: this.initStatus,
-					pageType: this.pageType,
-					pullupStatus: this.pullupStatus,
-					pulldownStatus: this.pulldownStatus
+					pageType: this.pageType
 				}
 			}
 		},
@@ -172,46 +176,6 @@
 					}
 					dowhile(0)
 				}, 50)
-			},
-			//加载上个章节
-			scrolltoUpper(chapter) {
-				this.$emit('loadmore', chapter, (status, content) => {
-					if (status == 'success') {
-						let index = this.contents.findIndex(item => item.chapter == content.chapter)
-						if (index > -1) {
-							this.contents[index] = content;
-						} else {
-							this.contents.push(content);
-						}
-						const data = {
-							content: content,
-							type: 'prev'
-						}
-						this.computedPage(data);
-						this.preload(chapter)
-					}
-					this.pulldownStatus = status;
-				})
-			},
-			//加载下个章节
-			scrolltoLower(chapter) {
-				this.$emit('loadmore', chapter, (status, content) => {
-					if (status == 'success') {
-						let index = this.contents.findIndex(item => item.chapter == content.chapter)
-						if (index > -1) {
-							this.contents[index] = content;
-						} else {
-							this.contents.push(content);
-						}
-						const data = {
-							content: content,
-							type: 'next'
-						}
-						this.computedPage(data);
-						this.preload(chapter)
-					}
-					this.pullupStatus = status;
-				})
 			},
 			//预加载章节
 			preload(chapter) {
@@ -289,23 +253,58 @@
 						start: 0,
 						end: 0
 					})
+					const nowIndex = newPages.findIndex(page => page.dataId == this.currentPageDataId);
+					if ( nowIndex == -1 ) this.currentPageDataId = e.type == 'next' ? pages[0].dataId : pages[pages.length - 1].dataId;
 					this.pages = newPages;
+					this.$nextTick(() => {
+						this.initStatus = true;
+					})
 				});
 			},
-			scrollEnd(e) {
-				this.$emit('scrollEnd', e);
+			changePageActived (value) {
+				let index = this.pages.findIndex(page => page.dataId == this.currentPageDataId)
+				let newIndex = index + value;
+				this.currentPageDataId = this.pages[newIndex].dataId;
+				if ( this.pages[newIndex].type == 'text') {
+					if ( this.pages[newIndex + value].type == 'nextLoading' || this.pages[newIndex + value].type == 'prevLoading' ) {
+						const loadChapter = this.pages[newIndex + value].chapter + value;
+						const contentIndex = this.contents.findIndex(content => content.chapter == loadChapter)
+						if ( contentIndex > -1 ) {
+							const data = {
+								content: this.contents[contentIndex],
+								type: value > 0 ? 'next' : 'prev'
+							}
+							this.computedPage(data);
+							this.preload(loadChapter)
+						} else {
+							this.$emit('loadmore', loadChapter, (status, content) => {
+								if (status == 'success') {
+									let index = this.contents.findIndex(item => item.chapter == content.chapter)
+									if (index > -1) {
+										this.contents[index] = content;
+									} else {
+										this.contents.push(content);
+									}
+									const data = {
+										content: content,
+										type: value > 0 ? 'next' : 'prev'
+									}
+									this.computedPage(data);
+									this.preload(loadChapter)
+								}
+							})
+						}
+					}
+				}
+			},
+			currentChange(e) {
+				this.$emit('currentChange', e);
 			},
 			showToast (e) {
 				uni.showToast({
 					title: e.title,
 					icon: 'none'
 				})
-			},
-			resetPulldownStatus() {
-				this.pulldownStatus = 'none';
-			},
-			resetPullupStatus() {
-				this.pullupStatus = 'none';
 			},
 			resetInitStatus () {
 				this.initStatus = false;
@@ -319,13 +318,14 @@
 	export default {
 		data() {
 			return {
-				pageWating: false,
+				disableTouch: true,
 				pageEl: null,
 				pageDirection: '',
 				touchstart: {
 					x: 0,
 					y: 0
 				},
+				touchTime: 0,
 				moveX: 0,
 				viewWidth: 0,
 				viewHeight: 0
@@ -333,6 +333,12 @@
 		},
 		mounted() {
 			this.initDom.bind(this);
+			// const script = document.createElement('script');
+			// script.src = 'https://cdn.bootcdn.net/ajax/libs/eruda/2.3.3/eruda.js'
+			// script.onload = () => {
+			// 	eruda.init()
+			// }
+			// document.head.appendChild(script);
 		},
 		methods: {
 			initDom() {
@@ -342,12 +348,6 @@
 			},
 			//参数改变
 			propChange(newValue, oldValue) {
-				if (newValue.pulldownStatus != oldValue.pulldownStatus) {
-					this.pulldownStatusChange(newValue.pulldownStatus, oldValue.pulldownStatus);
-				}
-				if (newValue.pullupStatus != oldValue.pullupStatus) {
-					this.pullupStatusChange(newValue.pullupStatus, oldValue.pullupStatus);
-				}
 				//初始化时，定位到设置的位置
 				if (newValue.initStatus != oldValue.initStatus) {
 					if ( newValue.initStatus ) {
@@ -355,33 +355,24 @@
 						this.viewWidth = flip.offsetWidth;
 						this.viewHeight = flip.offsetHeight;
 						const flipItems = flip.getElementsByClassName('flip-item');
+						const fileActived = flip.getElementsByClassName('flip-item-actived')[0]
+						const currentPageDataId = parseInt(fileActived.getAttribute('dataId'));
 						Object.keys(flipItems).forEach(key => {
-							if (flipItems[key].getAttribute('dataId') < this.flipPageProp.currentPageDataId) {
-								this.pageAnimation(flipItems[key], 'next', -this.viewWidth)
+							if ( key >= 0 ) {
+								if (parseInt(flipItems[key].getAttribute('dataId')) < currentPageDataId) {
+									this.pageAnimation(flipItems[key], 'next', -this.viewWidth);
+								}
 							}
 						})
+						this.disableTouch = false;
 						this.triggerResetInitStatus();
 					}
 				}
 			},
-			//翻页动画
-			pageAnimation(el, direction, moveX, rotateZ = 0) {
-				let lateX = direction == 'next' ? moveX : moveX - this.viewWidth;
-				const content = el.getElementsByClassName('flip-item-content')[0];
-				const bg = el.getElementsByClassName('flip-item-bg')[0];
-				const shadow = el.getElementsByClassName('flip-item-shadow')[0];
-				el.style.transform = `translateX(${lateX}px)`;
-				content.style.transform = this.flipPageProp.pageType == 'real' ? `translateX(${-lateX}px)` : content.style
-					.transform;
-				bg.style.transform = this.flipPageProp.pageType == 'real' ?
-					`translate(${lateX}px, -50%) rotateZ(${rotateZ}deg)` : bg.style.transform;
-				shadow.style.boxShadow = '0 0 60px ' + (this.flipPageProp.pageType == 'real' ? Math.abs(lateX) > 30 ? 30 :
-					Math.abs(lateX) : 0) + 'px rgba(0,0,0,0.5)';
-			},
 			getPageActived (value) {
 				const flip = document.getElementById('flipPage')
 				const pageActived = flip.getElementsByClassName('flip-item-actived')[0]
-				const pageActivedPrev = flip.getElementsByClassName('flip-item-prev')[0]
+				const pageActivedPrev = flip.getElementsByClassName('flip-item-prev').length > 0 ? flip.getElementsByClassName('flip-item-prev')[0] : null;
 				if ( pageActived.getAttribute('type') == 'bottom' ) {
 					if ( value == 0 ) {
 						this.triggerShowToast({
@@ -428,7 +419,7 @@
 				return false;
 			},
 			pageTouchstart(e) {
-				if (this.pageWating) {
+				if (this.disableTouch) {
 					return;
 				}
 				if (e.touches.length == 1) {
@@ -449,7 +440,7 @@
 				}
 			},
 			pageTouchmove(e) {
-				if (this.pageWating) {
+				if (this.disableTouch) {
 					return;
 				}
 				if (e.touches.length == 1) {
@@ -468,117 +459,81 @@
 			},
 			pageTouchend(e) {
 				window.clearInterval(this.touchTimer);
-				if (this.pageWating) {
+				if (this.disableTouch) {
 					return;
 				}
 				if (this.pageEl) {
-					this.pageWating = true;
+					this.disableTouch = true;
 					if (this.touchTime <= 200) {
-						let duration = (this.pageProp.pageType == 'real' || this.pageProp.pageType == 'cover') ? 1000 : 0
-						let value = this.pageDirection == 'next' ? 1 : -1;
-						this.pageDuration(duration);
+						const duration = (this.flipPageProp.pageType == 'real' || this.flipPageProp.pageType == 'cover') ? 1000 : 0
+						const value = this.pageDirection == 'next' ? 1 : -1;
+						this.pageDuration(this.pageEl, duration);
 						this.$nextTick(() => {
-							this.pageAnimation(-value * this.viewWidth);
-							setTimeout(() => {
-								this.changePageActived(value);
+							this.pageAnimation(this.pageEl, this.pageDirection, -value * this.viewWidth);
+							window.setTimeout(() => {
 								this.resetPageMove();
+								this.triggerChangePageActived(value);
 							}, duration + 50)
 						})
 					} else {
-						let duration = (this.pageProp.pageType == 'real' || this.pageProp.pageType == 'cover') ? 500 : 0
+						const duration = (this.flipPageProp.pageType == 'real' || this.flipPageProp.pageType == 'cover') ? 500 : 0
 						if (Math.abs(this.moveX) >= this.viewWidth / 2.5) {
-							let value = this.pageDirection == 'next' ? 1 : -1;
-							this.pageDuration(duration);
+							const value = this.pageDirection == 'next' ? 1 : -1;
+							this.pageDuration(this.pageEl, duration);
 							this.$nextTick(() => {
-								this.pageAnimation(-value * this.viewWidth);
-								setTimeout(() => {
-									this.changePageActived(value);
+								this.pageAnimation(this.pageEl, this.pageDirection, -value * this.viewWidth);
+								window.setTimeout(() => {
 									this.resetPageMove();
+									this.triggerChangePageActived(value);
 								}, duration + 50)
 							})
 						} else {
-							this.pageDuration(duration);
+							this.pageDuration(this.pageEl, duration);
 							this.$nextTick(() => {
-								this.pageAnimation(0);
-								setTimeout(() => {
+								this.pageAnimation(this.pageEl, this.pageDirection, 0);
+								window.setTimeout(() => {
 									this.resetPageMove();
 								}, duration + 50)
 							})
 						}
 					}
+				} else {
+					this.resetPageMove();
 				}
 			},
-			computedPageInfo() {
-				const scroll = document.getElementById('scrollPage');
-				const scrollItems = scroll.getElementsByClassName('scroll-item');
-				const scrollTop = this.scrollInfo.scrollTop + this.scrollPageProp.topGap + this.scrollPageProp.bottomGap;
-				let dataId = -1;
-				for (let i = 0; i < scrollItems.length; i++) {
-					let offsetTop = scrollItems[i].offsetTop;
-					let offsetBottom = scrollItems[i].offsetTop + scrollItems[i].offsetHeight;
-					if (scrollTop >= offsetTop && scrollTop < offsetBottom) {
-						dataId = parseInt(scrollItems[i].getAttribute('data-id'))
-					}
-				}
-				if (!dataId) {
-					if (scrollTop < scrollItems[0].offsetTop) {
-						dataId = parseInt(scrollItems[0].getAttribute('data-id'))
-					}
-					if (scrollTop > scrollItems[scrollItems.length - 1].offsetTop + scrollItems[scrollItems.length - 1]
-						.offsetHeight) {
-						dataId = parseInt(scrollItems[scrollItems.length - 1].getAttribute('data-id'))
-					}
-				}
-				let index = this.pagesSync.findIndex(item => item.dataId == dataId);
-				let pageInfo = this.pagesSync[index];
-				pageInfo.currentPage = index + 1;
-				pageInfo.totalPage = this.pagesSync.filter(item => item.chapter == pageInfo.chapter).length;
-				return pageInfo
+			//翻页动画
+			pageAnimation(el, direction, moveX, rotateZ = 0) {
+				let lateX = direction == 'next' ? moveX : moveX - this.viewWidth;
+				const content = el.getElementsByClassName('flip-item-content')[0];
+				const bg = el.getElementsByClassName('flip-item-bg')[0];
+				const shadow = el.getElementsByClassName('flip-item-shadow')[0];
+				el.style.transform = `translateX(${lateX}px)`;
+				content.style.transform = this.flipPageProp.pageType == 'real' ? `translateX(${-lateX}px)` : content.style.transform;
+				bg.style.transform = this.flipPageProp.pageType == 'real' ? `translate(${lateX}px, -50%) rotateZ(${rotateZ}deg)` : bg.style.transform;
+				shadow.style.boxShadow = '0 0 60px ' + (this.flipPageProp.pageType == 'real' ? Math.abs(lateX) > 30 ? 30 : Math.abs(lateX) : 0) + 'px rgba(0,0,0,0.5)';
 			},
-			triggerComputedPage(e) {
-				// #ifndef H5
-				this.$ownerInstance.callMethod('computedPage', e);
-				// #endif
-				// #ifdef H5
-				this.computedPage(e);
-				// #endif
+			pageDuration (el, duration) {
+				const content = el.getElementsByClassName('flip-item-content')[0];
+				const bg = el.getElementsByClassName('flip-item-bg')[0];
+				const shadow = el.getElementsByClassName('flip-item-shadow')[0];
+				el.style.transition = duration > 0 ? 'transform ' + duration + 'ms' : '';
+				content.style.transition = duration > 0 ? 'transform ' + duration + 'ms' : '';
+				bg.style.transition = duration > 0 ? 'transform ' + duration + 'ms' : '';
+				shadow.style.transition = duration > 0 ? 'box-shadow ' + duration + 'ms' : '';
 			},
-			triggerScrolltoUpper(chapter) {
-				// #ifndef H5
-				this.$ownerInstance.callMethod('scrolltoUpper', chapter);
-				// #endif
-				// #ifdef H5
-				this.scrolltoUpper(chapter);
-				// #endif
-			},
-			triggerScrolltoLower(chapter) {
-				// #ifndef H5
-				this.$ownerInstance.callMethod('scrolltoLower', chapter);
-				// #endif
-				// #ifdef H5
-				this.scrolltoLower(chapter);
-				// #endif
-			},
-			triggerScrollEnd(e) {
-				let pageInfo = this.computedPageInfo();
-				// #ifndef H5
-				this.$ownerInstance.callMethod('scrollEnd', pageInfo);
-				// #endif
-				// #ifdef H5
-				this.scrollEnd(pageInfo);
-				// #endif
-			},
-			triggerPreload(chapter) {
-				// #ifndef H5
-				this.$ownerInstance.callMethod('preload', chapter);
-				// #endif
-				// #ifdef H5
-				this.preload(chapter);
-				// #endif
+			resetPageMove () {
+				this.pageEl ? this.pageDuration(this.pageEl, 0) : false;
+				this.disableTouch = false;
+				this.moveX = 0;
+				this.pageEl = '';
+				this.pageDirection = 'next';
+				this.touchTime = 0;
+				this.touchstart.x = 0;
+				this.touchstart.y = 0;
 			},
 			triggerResetInitStatus () {
 				// #ifndef H5
-				this.$ownerInstance.callMethod('resetInitStatus', );
+				this.$ownerInstance.callMethod('resetInitStatus');
 				// #endif
 				// #ifdef H5
 				this.resetInitStatus();
@@ -592,21 +547,14 @@
 				this.showToast(e);
 				// #endif
 			},
-			triggerResetPage() {
-				bs.disable();
-				let pageInfo = this.computedPageInfo();
-				this.pagesSync = [];
-				const data = {
-					start: pageInfo.start,
-					currentChapter: pageInfo.chapter
-				}
+			triggerChangePageActived (value) {
 				// #ifndef H5
-				this.$ownerInstance.callMethod('resetPage', data);
+				this.$ownerInstance.callMethod('changePageActived', value);
 				// #endif
 				// #ifdef H5
-				this.resetPage(data);
+				this.changePageActived(value);
 				// #endif
-			},
+			}
 		}
 	}
 </script>
@@ -670,7 +618,6 @@
 		height: 150vh;
 		top: 50%;
 		left: 100%;
-		transform: translateY(-50%);
 		box-shadow: -5px 0 20px rgba(0,0,0,0.1);
 	}
 

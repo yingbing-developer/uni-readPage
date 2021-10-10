@@ -34,16 +34,16 @@
 		},
 		onReady() {
 			let contents = [{
-				chapter: 3,
-				content: this.getContent(3),
+				chapter: 2,
+				content: this.getContent(2),
 				isStart: false,
 				isEnd: false
 			}]
 			const { page } = this.$refs;
 			page.init({
 				contents: contents,
-				start: 730,
-				currentChapter: 3
+				start: 0,
+				currentChapter: 2
 			})
 		},
 		methods: {
