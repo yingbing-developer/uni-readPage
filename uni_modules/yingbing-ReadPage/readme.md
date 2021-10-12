@@ -42,11 +42,22 @@
 | isEnd | Boolean | 是否是最后一个章节 |
 | isStart | Boolean | 是否是第一章节 |
 
-#章节模式 loadmore和preload方法回调callback介绍
+#章节模式 loadmore和preload事件回调callback介绍
 | 参数 | 类型 | 是否必传 | 可选值 | 说明 |
 | :----- | :----: | :---- |
 | status | String | 是 | success/fail/timeout | 请求回调状态 |
 | content/contents | String | 是 | loadmore方法需要传入content对象, preload方法需要传入content对象集合contents | 请求回调内容 |
+
+#章节模式 currentChange事件参数currentInfo介绍
+| 键名 | 类型  | 说明 |
+| :----- | :----: | :---- |
+| chapter | String | 当前页面所在章节 |
+| start | Number | 当前页面所在章节的阅读开始位置 |
+| end | Number | 当前页面所在章节的阅读结束位置 |
+| dataId | Number | 插件内部使用参数不用处理 |
+| text | Array | 当前页面文字集合 |
+| totalPage | Number | 当前章节的全部分页数量 |
+| currentPage | Number | 当前章节第几页 |
 
 #整书模式 内置方法
 | 方法名 | 参数 | 说明 |

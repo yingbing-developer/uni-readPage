@@ -261,7 +261,7 @@
 				let pageInfo = this.pages[index];
 				const nowChapters = this.pages.filter(item => item.chapter == pageInfo.chapter)
 				pageInfo.totalPage = nowChapters.length;
-				pageInfo.currentPage = nowChapters.findIndex(item => item.dataId == pageInfo.dataId);
+				pageInfo.currentPage = nowChapters.findIndex(item => item.dataId == pageInfo.dataId) + 1;
 				this.$emit('currentChange', pageInfo);
 			},
 			showToast (e) {
