@@ -147,7 +147,7 @@
 				this.$emit('loadmore', chapter, (status, contents) => {
 					if (status == 'success') {
 						this.contents = JSON.parse(JSON.stringify(contents))
-						const index = this.contents.findIndex(item => item.chapter == loadChapter)
+						const index = this.contents.findIndex(item => item.chapter == chapter)
 						const data = {
 							content: this.contents[index],
 							type: 'prev'
@@ -160,10 +160,10 @@
 			},
 			//加载下个章节
 			scrolltoLower(chapter) {
-				this.$emit('loadmore', chapter, (status, content) => {
+				this.$emit('loadmore', chapter, (status, contents) => {
 					if (status == 'success') {
 						this.contents = JSON.parse(JSON.stringify(contents))
-						const index = this.contents.findIndex(item => item.chapter == loadChapter)
+						const index = this.contents.findIndex(item => item.chapter == chapter)
 						const data = {
 							content: this.contents[index],
 							type: 'next'
