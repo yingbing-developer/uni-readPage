@@ -61,7 +61,8 @@
 			return {
 				contents: [],
 				pages: [],
-				currentPageDataId: -1
+				currentPageDataId: -1,
+				moreLoading: false
 			}
 		},
 		computed: {
@@ -85,9 +86,8 @@
 				this.contents = data.contents;
 				this.resetPage(data);
 			},
-			//重绘页面
+			//绘制页面
 			resetPage(data) {
-				this.pages = [];
 				setTimeout(() => {
 					//一次最多渲染3章的内容，根据定位的章节剪切出3章内容渲染
 					const nowIndex = this.contents.findIndex(item => item.chapter == data.currentChapter);
@@ -133,6 +133,7 @@
 								})
 								this.pages = arr;
 								this.$nextTick(() => {
+									this.currentChange();
 									this.preload(data.currentChapter);
 								})
 							} else {
@@ -165,15 +166,7 @@
 				if (chapters.length > 0) {
 					this.$emit('preload', chapters, (status, contents) => {
 						if (status == 'success') {
-							contents.forEach(item => {
-								let index = this.contents.findIndex(content => content.chapter == item
-									.chapter)
-								if (index > -1) {
-									this.contents[index] = item;
-								} else {
-									this.contents.push(item);
-								}
-							})
+							this.contents = JSON.parse(JSON.stringify(contents))
 						}
 					})
 				}
@@ -230,40 +223,46 @@
 				let index = this.pages.findIndex(page => page.dataId == this.currentPageDataId)
 				let newIndex = index + value;
 				this.currentPageDataId = this.pages[newIndex].dataId;
-				if ( this.pages[newIndex].type == 'text') {
-					if ( this.pages[newIndex + value].type == 'nextLoading' || this.pages[newIndex + value].type == 'prevLoading' ) {
-						const loadChapter = this.pages[newIndex + value].chapter + value;
-						const contentIndex = this.contents.findIndex(content => content.chapter == loadChapter)
-						if ( contentIndex > -1 ) {
-							const data = {
-								content: this.contents[contentIndex],
-								type: value > 0 ? 'next' : 'prev'
-							}
-							this.computedPage(data);
-							this.preload(loadChapter)
-						} else {
-							this.$emit('loadmore', loadChapter, (status, content) => {
-								if (status == 'success') {
-									let index = this.contents.findIndex(item => item.chapter == content.chapter)
-									if (index > -1) {
-										this.contents[index] = content;
-									} else {
-										this.contents.push(content);
-									}
-									const data = {
-										content: content,
-										type: value > 0 ? 'next' : 'prev'
-									}
-									this.computedPage(data);
-									this.preload(loadChapter)
-								}
-							})
+				this.currentChange();
+				const nowType = this.pages[newIndex].type;
+				const newType = this.pages[newIndex + value] ? this.pages[newIndex + value].type : null;
+				if ( nowType == 'nextLoading' || nowType == 'prevLoading' || newType == 'nextLoading' || newType == 'prevLoading' ) {
+					if ( this.moreLoading ) return
+					this.moreLoading = true;
+					const loadChapter = this.pages[newIndex].chapter + value;
+					const contentIndex = this.contents.findIndex(content => content.chapter == loadChapter)
+					if ( contentIndex > -1 ) {
+						const data = {
+							content: this.contents[contentIndex],
+							type: value > 0 ? 'next' : 'prev'
 						}
+						this.computedPage(data);
+						this.preload(loadChapter)
+						this.moreLoading = false;
+					} else {
+						this.$emit('loadmore', loadChapter, (status, contents) => {
+							if (status == 'success') {
+								this.contents = JSON.parse(JSON.stringify(contents))
+								const index = this.contents.findIndex(item => item.chapter == loadChapter)
+								const data = {
+									content: this.contents[index],
+									type: value > 0 ? 'next' : 'prev'
+								}
+								this.computedPage(data);
+								this.preload(loadChapter)
+								this.moreLoading = false;
+							}
+						})
 					}
 				}
 			},
-			currentChange(e) {
-				this.$emit('currentChange', e);
+			currentChange() {
+				const index = this.pages.findIndex(page => page.dataId == this.currentPageDataId);
+				let pageInfo = this.pages[index];
+				const nowChapters = this.pages.filter(item => item.chapter == pageInfo.chapter)
+				pageInfo.totalPage = nowChapters.length;
+				pageInfo.currentPage = nowChapters.findIndex(item => item.dataId == pageInfo.dataId);
+				this.$emit('currentChange', pageInfo);
 			},
 			showToast (e) {
 				uni.showToast({
@@ -293,11 +292,15 @@
 				touchTime: 0,
 				moveX: 0,
 				viewWidth: 0,
-				viewHeight: 0
+				viewHeight: 0,
+				colorSync: '',
+				bgColorSync: ''
 			}
 		},
 		mounted() {
 			this.initDom.bind(this);
+			this.colorSync = this.flipPageProp.color;
+			this.bgColorSync = this.flipPageProp.bgColor;
 			new Vue({
 				el: '#flip-content',
 				render: (h) => {
@@ -346,8 +349,8 @@
 									top: 0,
 									'box-sizing': 'border-box',
 									padding: `${this.flipPageProp.topGap}px ${this.flipPageProp.slide}px ${this.flipPageProp.bottomGap}px ${this.flipPageProp.slide}px`,
-									background: this.flipPageProp.bgColor,
-									color: this.flipPageProp.color,
+									background: this.bgColorSync,
+									color: this.colorSync,
 									'font-size': this.flipPageProp.fontSize + 'px'
 								}
 							}, item.type == 'text' ? item.text.map(text => {
@@ -404,7 +407,7 @@
 									left: '100%',
 									transform: 'translateY(-50%)',
 									'box-shadow': '-5px 0 20px rgba(0,0,0,0.1)',
-									background: this.flipPageProp.bgColor
+									background: this.bgColorSync
 								}
 							}),
 							h('div', {
@@ -439,13 +442,28 @@
 			propChange(newValue, oldValue) {
 				for ( let i in newValue.pages ) {
 					if ( !this.diff(newValue.pages[i], oldValue.pages.length > 0 ? oldValue.pages[i] : '')) {
-						this.pagesChange(newValue.pages, oldValue.pages);
+						this.pagesSync = JSON.parse(JSON.stringify(newValue.pages));
+						this.pagesChange();
 						break;
 					}
 				}
+				if (newValue.fontSize != oldValue.fontSize) {
+					this.triggerResetPage();
+				}
+				if (newValue.lineHeight != oldValue.lineHeight) {
+					this.triggerResetPage();
+				}
+				if (newValue.pageType != oldValue.pageType) {
+					this.pagesChange();
+				}
+				if (newValue.color != oldValue.color) {
+					this.colorSync = newValue.color
+				}
+				if (newValue.bgColor != oldValue.bgColor) {
+					this.bgColorSync = newValue.bgColor
+				}
 			},
-			pagesChange(newValue, oldValue) {
-				this.pagesSync = JSON.parse(JSON.stringify(newValue));
+			pagesChange() {
 				this.$nextTick(() => {
 					const flip = document.getElementById('flipPage');
 					this.viewWidth = flip.offsetWidth;
@@ -564,7 +582,7 @@
 				}
 			},
 			pageTouchmove(e) {
-				if (this.disableTouch) {
+				if (this.disableTouch || this.flipPageProp.pageType == 'none') {
 					return;
 				}
 				if (e.touches.length == 1) {
@@ -632,8 +650,8 @@
 				const bg = el.getElementsByClassName('flip-item-bg')[0];
 				const shadow = el.getElementsByClassName('flip-item-shadow')[0];
 				el.style.transform = `translateX(${lateX}px)`;
-				content.style.transform = this.flipPageProp.pageType == 'real' ? `translateX(${-lateX}px)` : content.style.transform;
-				bg.style.transform = this.flipPageProp.pageType == 'real' ? `translate(${lateX}px, -50%) rotateZ(${rotateZ}deg)` : bg.style.transform;
+				content.style.transform = this.flipPageProp.pageType == 'real' ? `translateX(${-lateX}px)` : 'translateX(0)';
+				bg.style.transform = this.flipPageProp.pageType == 'real' ? `translate(${lateX}px, -50%) rotateZ(${rotateZ}deg)` : 'translateY(-50%)';
 				shadow.style.boxShadow = '0 0 60px ' + (this.flipPageProp.pageType == 'real' ? Math.abs(lateX) > 30 ? 30 : Math.abs(lateX) : 0) + 'px rgba(0,0,0,0.5)';
 			},
 			pageDuration (el, duration) {
@@ -670,7 +688,20 @@
 				// #ifdef H5
 				this.changePageActived(value);
 				// #endif
-			}
+			},
+			triggerResetPage () {
+				const index = this.pagesSync.findIndex(page => page.dataId == this.flipPageProp.currentPageDataId);
+				const data = {
+					start: this.pagesSync[index].start,
+					currentChapter: this.pagesSync[index].chapter
+				}
+				// #ifndef H5
+				this.$ownerInstance.callMethod('resetPage', data);
+				// #endif
+				// #ifdef H5
+				this.resetPage(data);
+				// #endif
+			},
 		}
 	}
 </script>

@@ -1,47 +1,65 @@
 <template>
 	<view class="page">
 		
-		<!-- 翻页模式 -->
-		<flip-page
-		v-if="pageType != 'scroll'"
-		ref="filpPage"
-		:page-type="pageType"
-		:font-size="prop.fontSize"
-		:line-height="prop.lineHeight"
-		:color="color"
-		:bg-color="bgColor"
-		:slide="prop.slide"
-		:topGap="prop.topGap"
-		:bottomGap="prop.bottomGap"
-		:enablePreload="enablePreload"
-		@loadmore="loadmore"
-		@preload="preload"
-		@scrollEnd="scrollEnd">
-		</flip-page>
-		<!-- 翻页模式 -->
+		<template v-if="!noChapter">
+			<!-- 翻页模式 -->
+			<flip-page
+			v-if="pageType != 'scroll'"
+			ref="filpPage"
+			:page-type="pageType"
+			:font-size="prop.fontSize"
+			:line-height="prop.lineHeight"
+			:color="color"
+			:bg-color="bgColor"
+			:slide="prop.slide"
+			:topGap="prop.topGap"
+			:bottomGap="prop.bottomGap"
+			:enablePreload="enablePreload"
+			@loadmore="loadmore"
+			@preload="preload"
+			@currentChange="currentChangeNoChater">
+			</flip-page>
+			<!-- 翻页模式 -->
+			
+			<!-- 滚动模式 -->
+			<scroll-page
+			v-if="pageType == 'scroll'"
+			ref="scrollPage"
+			:page-type="pageType"
+			:font-size="prop.fontSize"
+			:line-height="prop.lineHeight"
+			:color="color"
+			:bg-color="bgColor"
+			:slide="prop.slide"
+			:topGap="prop.topGap"
+			:bottomGap="prop.bottomGap"
+			:enablePreload="enablePreload"
+			@loadmore="loadmore"
+			@preload="preload"
+			@scrollEnd="currentChange">
+			</scroll-page>
+			<!-- 滚动模式 -->
+		</template>
 		
-		<!-- 滚动模式 -->
-		<scroll-page
-		v-if="pageType == 'scroll'"
-		ref="scrollPage"
-		:page-type="pageType"
-		:font-size="prop.fontSize"
-		:line-height="prop.lineHeight"
-		:color="color"
-		:bg-color="bgColor"
-		:slide="prop.slide"
-		:topGap="prop.topGap"
-		:bottomGap="prop.bottomGap"
-		:enablePreload="enablePreload"
-		@loadmore="loadmore"
-		@preload="preload"
-		@scrollEnd="scrollEnd">
-		</scroll-page>
-		<!-- 滚动模式 -->
+		<template v-else>
+			<page-no-chapter
+			ref="pageNoChapter"
+			:page-type="pageType"
+			:font-size="prop.fontSize"
+			:line-height="prop.lineHeight"
+			:color="color"
+			:bg-color="bgColor"
+			:slide="prop.slide"
+			:topGap="prop.topGap"
+			:bottomGap="prop.bottomGap"
+			@currentChange="currentChange"
+			@setCatalog="setCatalog"></page-no-chapter>
+		</template>
 	</view>
 </template>
 
 <script>
+	const pageTypes = ['cover', 'real', 'none'];
 	export default {
 		props: {
 			//字体颜色
@@ -88,13 +106,19 @@
 			enablePreload: {
 				type: Boolean,
 				default: false
+			},
+			//是否开启整书模式
+			noChapter: {
+				type: Boolean,
+				default: false
 			}
 		},
 		data () {
 			return {
 				pageInfo: {
 					dataId: -1
-				}
+				},
+				contents: []
 			}
 		},
 		computed: {
@@ -110,51 +134,106 @@
 		},
 		methods: {
 			loadmore (chapter, callback) {
-				this.$emit('loadmore', chapter, callback);
+				this.$emit('loadmore', chapter, (status, content) => {
+					if (status == 'success') {
+						const index = this.contents.findIndex(item => item.chapter == content.chapter)
+						if (index > -1) {
+							this.contents[index] = content;
+						} else {
+							this.contents.push(content);
+						}
+					}
+					callback(status, this.contents);
+				});
 			},
 			preload (chapters, callback) {
-				this.$emit('preload', chapters, callback);
+				this.$emit('preload', chapters, (status, contents) => {
+					if (status == 'success') {
+						contents.forEach(item => {
+							const index = this.contents.findIndex(content => content.chapter == item
+								.chapter)
+							if (index > -1) {
+								this.contents[index] = item;
+							} else {
+								this.contents.push(item);
+							}
+						})
+					}
+					callback(status, this.contents);
+				});
 			},
-			scrollEnd (e) {
+			currentChange (e) {
 				if ( e.dataId != this.pageInfo.dataId ) this.$emit('currentChange', e) //抛出阅读页面改变事件
 				this.pageInfo = e;
 			},
+			currentChangeNoChater (e) {
+				this.$emit('currentChange', e)
+			},
+			setCatalog (e) {
+				this.$emit('setCatalog', e);
+			},
 			//初始化
 			init (data) {
-				if ( this.pageType == 'scroll' ) {
-					this.$refs.scrollPage.init(data)
+				if ( !this.noChapter ) {
+					this.contents = data.contents;
+					if ( this.pageType == 'scroll' ) {
+						this.$refs.scrollPage.init(data)
+					} else {
+						this.$refs.filpPage.init(data)
+					}
 				} else {
-					this.$refs.filpPage.init(data)
+					this.$refs.pageNoChapter.init(data);
+				}
+			},
+			//重计算
+			refresh () {
+				if ( pageTypes.indexOf(this.pageType) > -1 ) {
+					this.$refs.filpPage.resetPage({
+						start: this.pageInfo.start,
+						chapter: this.pageInfo.chapter
+					})
+				} else {
+					this.$refs.scrollPage.resetPage({
+						start: this.pageInfo.start,
+						chapter: this.pageInfo.chapter
+					})
 				}
 			},
 			//跳转
 			change (data) {
-				this.contents[0].start = data.position;
-				this.restart = true;
-			},
-			showToast (e) {
-				uni.showToast({
-					title: e.title,
-					icon: 'none'
+				data.contents.forEach(item => {
+					const index = this.contents.findIndex(content => content.chapter == item.chapter)
+					if (index > -1) {
+						this.contents[index] = item;
+					} else {
+						this.contents.push(item);
+					}
+					this.init({
+						contents: this.contents,
+						start: data.start,
+						currentChapter: data.currentChapter
+					});
 				})
-			},
-			//重置部分变量，方便下次使用
-			resetPageProp () {
-				this.restart = false;
-				this.isNewChapter = false;
-			},
-			//使用正则获取章节目录 并抛出事件
-			getCatalog (content) {
-				const reg = new RegExp(/(第?[一二两三四五六七八九十○零百千万亿0-9１２３４５６７８９０※✩★☆]{1,6}[章回卷节折篇幕集部]?[、.-\s][^\n]*)[_,-]?/g);
-				let match = '';
-				let catalog = [];
-				while ((match = reg.exec(content)) != null) {
-					catalog.push({
-						title: match[0],
-						position: match.index
-					})
-				}
-				this.$emit('setCatalog', catalog);
+			}
+		},
+		watch: {
+			pageType (newVal, oldVal) {
+				setTimeout(() => {
+					if ( pageTypes.indexOf(newVal) > -1 && oldVal == 'scroll' ) {
+						this.init({
+							contents: this.contents,
+							start: this.pageInfo.start,
+							currentChapter: this.pageInfo.chapter
+						});
+					}
+					if ( pageTypes.indexOf(oldVal) > -1 && newVal == 'scroll' ) {
+						this.init({
+							contents: this.contents,
+							start: this.pageInfo.start,
+							currentChapter: this.pageInfo.chapter
+						});
+					}
+				}, 50)
 			}
 		}
 	}

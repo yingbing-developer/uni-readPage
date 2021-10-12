@@ -144,16 +144,12 @@
 			},
 			//加载上个章节
 			scrolltoUpper(chapter) {
-				this.$emit('loadmore', chapter, (status, content) => {
+				this.$emit('loadmore', chapter, (status, contents) => {
 					if (status == 'success') {
-						let index = this.contents.findIndex(item => item.chapter == content.chapter)
-						if ( index > -1) {
-							this.contents[index] = content;
-						} else {
-							this.contents.push(content);
-						}
+						this.contents = JSON.parse(JSON.stringify(contents))
+						const index = this.contents.findIndex(item => item.chapter == loadChapter)
 						const data = {
-							content: content,
+							content: this.contents[index],
 							type: 'prev'
 						}
 						this.computedPage(data);
@@ -166,14 +162,10 @@
 			scrolltoLower(chapter) {
 				this.$emit('loadmore', chapter, (status, content) => {
 					if (status == 'success') {
-						let index = this.contents.findIndex(item => item.chapter == content.chapter)
-						if ( index > -1) {
-							this.contents[index] = content;
-						} else {
-							this.contents.push(content);
-						}
+						this.contents = JSON.parse(JSON.stringify(contents))
+						const index = this.contents.findIndex(item => item.chapter == loadChapter)
 						const data = {
-							content: content,
+							content: this.contents[index],
 							type: 'next'
 						}
 						this.computedPage(data);
@@ -200,14 +192,7 @@
 				if ( chapters.length > 0 ) {
 					this.$emit('preload', chapters, (status, contents) => {
 						if (status == 'success') {
-							contents.forEach(item => {
-								let index = this.contents.findIndex(content => content.chapter == item.chapter)
-								if ( index > -1) {
-									this.contents[index] = item;
-								} else {
-									this.contents.push(item);
-								}
-							})
+							this.contents = JSON.parse(JSON.stringify(contents))
 						}
 					})
 				}
@@ -664,8 +649,9 @@
 				}
 				let index = this.pagesSync.findIndex(item => item.dataId == dataId);
 				let pageInfo = this.pagesSync[index];
-				pageInfo.currentPage = index + 1;
-				pageInfo.totalPage = this.pagesSync.filter(item => item.chapter == pageInfo.chapter).length;
+				const nowChapters = this.pagesSync.filter(item => item.chapter == pageInfo.chapter)
+				pageInfo.totalPage = nowChapters.length;
+				pageInfo.currentPage = nowChapters.findIndex(item => item.dataId == pageInfo.dataId);
 				return pageInfo
 			},
 			triggerResetPulldownStatus() {

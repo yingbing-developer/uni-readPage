@@ -9,7 +9,7 @@
 		:bg-color="bgColor"
 		:slide="slide"
 		:enablePreload="enablePreload"
-		no-chapter
+		:noChapter="noChapter"
 		@loadmore="loadmoreContent"
 		@preload="preloadContent"
 		@currentChange="currentChange"
@@ -29,7 +29,8 @@
 				color: '#333',
 				slide: 40,
 				bgColor: '#fcd281',
-				enablePreload: true
+				enablePreload: true,
+				noChapter: false
 			}
 		},
 		onReady() {
@@ -40,11 +41,18 @@
 				isEnd: false
 			}]
 			const { page } = this.$refs;
-			page.init({
-				contents: contents,
-				start: 0,
-				currentChapter: 2
-			})
+			if ( this.noChapter ) {
+				page.init({
+					content: this.getContent(2),
+					start: 0
+				})
+			} else {
+				page.init({
+					contents: contents,
+					start: 0,
+					currentChapter: 2
+				})
+			}
 		},
 		methods: {
 			currentChange (e) {
@@ -70,25 +78,33 @@
 				this.bgColor = '#999';
 			},
 			changeChapter () {
-				let contents = [{
-					chapter: 3,
-					content: this.getContent(3),
-					isEnd: false
-				},{
-					chapter: 4,
-					content: this.getContent(4),
-					isEnd: false
-				},{
-					chapter: 5,
-					content: this.getContent(5),
-					isEnd: false
-				}]
-				const { page } = this.$refs;
-				page.change({
-					contents: contents,
-					start: 600,
-					current: 5
-				})
+				if ( this.noChapter ) {
+					page.change({
+						start: 100
+					})
+				} else {
+					setTimeout(() => {
+						let contents = [{
+							chapter: 3,
+							content: this.getContent(3),
+							isEnd: false
+						},{
+							chapter: 4,
+							content: this.getContent(4),
+							isEnd: false
+						},{
+							chapter: 5,
+							content: this.getContent(5),
+							isEnd: false
+						}]
+						const { page } = this.$refs;
+						page.change({
+							contents: contents,
+							start: 0,
+							currentChapter: 5
+						})
+					}, 2000)
+				}
 			},
 			loadmoreContent (chapter, callback) {
 				setTimeout(() => {
