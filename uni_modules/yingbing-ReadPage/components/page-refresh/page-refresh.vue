@@ -1,8 +1,6 @@
 <template>
-	<view class="refresh" :style="{color: color}">
-		<view class="refresh-icon" :style="{'border-top': '5rpx solid' + color, 'border-left': '5rpx solid' + color, 'border-bottom': '5rpx solid' + color}"></view>
-		<slot>下拉刷新</slot>
-	</view>
+	<div id="page-refresh" :prop="refreshProp" :change:prop="pageRefresh.refreshPropChange">
+	</div>
 </template>
 
 <script>
@@ -13,32 +11,88 @@
 				type: String,
 				default: '#333333'
 			}
+		},
+		computed: {
+			refreshProp () {
+				return {
+					color: this.color
+				}
+			}
 		}
 	}
 </script>
 
-<style scoped>
-	@keyframes animationRotate  {
-	  0% {
-	    transform: rotateZ(0);
-	  }
-	  100% {
-	    transform: rotateZ(360deg);
-	  }
+<script lang="renderjs" type="module" module="pageRefresh">
+	import Vue from 'vue'
+	let myRefreshDom
+	const animationRotate = `@keyframes animationRotate{
+	    0% {
+	      transform: rotateZ(0);
+	    }
+	    100% {
+	      transform: rotateZ(360deg);
+	    }
+	}`
+	export default {
+		data () {
+			return {
+				colorSync: ''
+			}
+		},
+		mounted () {
+			new Vue({
+				el: '#page-refresh',
+				render: (h) => {
+					const title = this.$slots.default
+					return h('div', {
+						class: 'page-refresh',
+						style: {
+							width: '100%',
+							height: '100rpx',
+							display:' flex',
+							'align-items': 'center',
+							'justify-content': 'center'
+						}
+					}, [
+						h('div', {
+							style: {
+								'border-top': '5rpx solid' + this.colorSync,
+								'border-left': '5rpx solid' + this.colorSync,
+								'border-bottom': '5rpx solid' + this.colorSync,
+								'border-right': '5rpx solid transparent',
+								width: '30rpx',
+								height: '30rpx',
+								'border-radius': '30rpx',
+								'margin-right': '10rpx',
+								animation: 'animationRotate 1s linear infinite'
+							}
+						}, [
+							h('style', {
+								attrs: {
+									type: 'text/css'
+								}
+							}, animationRotate)
+						]),
+						h('p', {
+							style: {
+								color: this.colorSync
+							}
+						}, title)
+					])
+				}
+			})
+		},
+		methods: {
+			initDom () {
+				myRefreshDom = pageRefresh.init(document.getElementById('computedPage' + this.computedPageProp.dataId));
+				// 观测更新的数据在 view 层可以直接访问到
+				myRefreshDom.setOption(this.refreshProp);
+			},
+			refreshPropChange (newValue, oldValue) {
+				if ( newValue.color != oldValue.color ) {
+					this.colorSync = newValue.color
+				}
+			}
+		}
 	}
-	.refresh {
-		width: 100%;
-		height: 100rpx;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	.refresh-icon {
-		width: 30rpx;
-		height: 30rpx;
-		border-radius: 30rpx;
-		border-right: 5rpx solid transparent;
-		margin-right: 10rpx;
-		animation: animationRotate 1s linear infinite;
-	}
-</style>
+</script>

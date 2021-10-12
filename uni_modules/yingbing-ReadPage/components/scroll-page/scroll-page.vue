@@ -322,7 +322,7 @@
 											4) +
 										'px',
 									'font-family': '"Microsoft YaHei", 微软雅黑',
-									'white-space': 'nowrap',
+									'white-space': 'pre-wrap',
 								}
 							}, text)
 						}) : [h('p', {

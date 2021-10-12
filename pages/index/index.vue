@@ -22,7 +22,7 @@
 		data() {
 			return {
 				pages: [],
-				pageType: 'scroll',
+				pageType: 'real',
 				scrollTop: 400,
 				fontsize: 15,
 				lineHeight: 15,
@@ -137,7 +137,7 @@
 			},
 			getContent (chapter = 1) {
 return `第${chapter}章
-你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊
+                你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊
 你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊
 你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊
 你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊你们好啊

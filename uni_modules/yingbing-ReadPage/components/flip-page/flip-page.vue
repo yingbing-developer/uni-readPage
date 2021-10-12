@@ -277,7 +277,7 @@
 <script lang="renderjs" type="module" module="flipPage">
 	let myFlipPageDom
 	import Vue from 'vue'
-	import pageRefresh from '../page-refresh/page-refresh.vue'
+	import PageRefresh from '../page-refresh/page-refresh.vue'
 	export default {
 		data() {
 			return {
@@ -359,7 +359,8 @@
 									style: {
 										width: '100%',
 										'box-sizing': 'border-box',
-										'white-space': 'nowrap',
+										'white-space': 'pre-wrap',
+										'font-family': '"Microsoft YaHei", 微软雅黑',
 										'margin-top': this.flipPageProp.lineHeight + 'px',
 										height: this.flipPageProp.fontSize + 'px'
 									}
@@ -379,7 +380,7 @@
 										'justify-content': 'center'
 									}
 								}, [
-									h(pageRefresh, '正在加载内容')
+									h(PageRefresh, '正在加载内容')
 								])
 							] : [
 								h('div', {
