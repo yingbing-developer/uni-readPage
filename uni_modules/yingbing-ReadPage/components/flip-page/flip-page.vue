@@ -199,7 +199,8 @@
 						newPages = pagesSync.filter(item => item.type == 'text');
 					}
 					const prevIndex = this.contents.findIndex(content => content.chapter == newPages[0].chapter);
-					const nextIndex = this.contents.findIndex(content => content.chapter == newPages[newPages.length - 1].chapter);
+					const nextIndex = this.contents.findIndex(content => content.chapter == newPages[newPages
+						.length - 1].chapter);
 					newPages.unshift({
 						chapter: this.contents[prevIndex].chapter,
 						type: this.contents[prevIndex].isStart ? 'top' : 'prevLoading',
@@ -215,23 +216,25 @@
 						end: 0
 					})
 					const nowIndex = newPages.findIndex(page => page.dataId == this.currentPageDataId);
-					if ( nowIndex == -1 ) this.currentPageDataId = e.type == 'next' ? pages[0].dataId : pages[pages.length - 1].dataId;
+					if (nowIndex == -1) this.currentPageDataId = e.type == 'next' ? pages[0].dataId : pages[pages
+						.length - 1].dataId;
 					this.pages = JSON.parse(JSON.stringify(newPages))
 				});
 			},
-			changePageActived (value) {
+			changePageActived(value) {
 				let index = this.pages.findIndex(page => page.dataId == this.currentPageDataId)
 				let newIndex = index + value;
 				this.currentPageDataId = this.pages[newIndex].dataId;
 				this.currentChange();
 				const nowType = this.pages[newIndex].type;
 				const newType = this.pages[newIndex + value] ? this.pages[newIndex + value].type : null;
-				if ( nowType == 'nextLoading' || nowType == 'prevLoading' || newType == 'nextLoading' || newType == 'prevLoading' ) {
-					if ( this.moreLoading ) return
+				if (nowType == 'nextLoading' || nowType == 'prevLoading' || newType == 'nextLoading' || newType ==
+					'prevLoading') {
+					if (this.moreLoading) return
 					this.moreLoading = true;
 					const loadChapter = this.pages[newIndex].chapter + value;
 					const contentIndex = this.contents.findIndex(content => content.chapter == loadChapter)
-					if ( contentIndex > -1 ) {
+					if (contentIndex > -1) {
 						const data = {
 							content: this.contents[contentIndex],
 							type: value > 0 ? 'next' : 'prev'
@@ -260,13 +263,14 @@
 				const types = ['top', 'bottom', 'prevLoading', 'nextLoading'];
 				const index = this.pages.findIndex(page => page.dataId == this.currentPageDataId);
 				const type = this.pages[index].type;
-				let pageInfo = types.indexOf(type) == -1 ? this.pages[index] : (type == 'top' || type == 'prevLoading') ? this.pages[index + 1] : this.pages[index - 1];
+				let pageInfo = types.indexOf(type) == -1 ? this.pages[index] : (type == 'top' || type == 'prevLoading') ?
+					JSON.parse(JSON.stringify(this.pages[index + 1])) : JSON.parse(JSON.stringify(this.pages[index - 1]));
 				const nowChapters = this.pages.filter(item => item.chapter == pageInfo.chapter)
 				pageInfo.totalPage = nowChapters.length;
 				pageInfo.currentPage = nowChapters.findIndex(item => item.dataId == pageInfo.dataId) + 1;
 				this.$emit('currentChange', pageInfo);
 			},
-			showToast (e) {
+			showToast(e) {
 				uni.showToast({
 					title: e.title,
 					icon: 'none'
@@ -310,6 +314,9 @@
 			this.initDom.bind(this);
 			this.colorSync = this.flipPageProp.color;
 			this.bgColorSync = this.flipPageProp.bgColor;
+			const flip = document.getElementById('flipPage');
+			this.viewWidth = flip.offsetWidth;
+			this.viewHeight = flip.offsetHeight;
 			new Vue({
 				el: '#flip-content',
 				render: (h) => {
@@ -330,6 +337,7 @@
 					}, this.pagesSync.map((item, key) => {
 						return h('div', {
 							class: 'flip-item',
+							key: item.dataId,
 							attrs: {
 								chapter: item.chapter,
 								start: item.start,
@@ -337,44 +345,28 @@
 								type: item.type,
 								'data-id': item.dataId
 							},
-							style: {
-								position: 'absolute',
-								width: '100%',
-								height: '100%',
-								top: 0,
-								left: 0,
-								'box-sizing': 'border-box',
-								overflow: 'hidden',
-								'z-index': -item.dataId
-							}
+							style: this.createItemStyle(item)
 						}, [
 							h('div', {
 								class: 'flip-item-content',
-								style: {
-									position: 'absolute',
-									width: '100%',
-									height: '100%',
-									left: 0,
-									top: 0,
-									'box-sizing': 'border-box',
-									padding: `${this.flipPageProp.topGap}px ${this.flipPageProp.slide}px ${this.flipPageProp.bottomGap}px ${this.flipPageProp.slide}px`,
-									background: this.bgColorSync,
-									color: this.colorSync,
-									'font-size': this.flipPageProp.fontSize + 'px'
-								}
-							}, item.type == 'text' ? item.text.map(text => {
+								style: this.createContentStyle(item)
+							}, item.type == 'text' ? item.text.map((text, key) => {
 								return h('p', {
 									class: 'flip-text',
+									key: key,
 									style: {
 										width: '100%',
 										'box-sizing': 'border-box',
 										'white-space': 'pre-wrap',
 										'font-family': '"Microsoft YaHei", 微软雅黑',
-										'margin-top': this.flipPageProp.lineHeight + 'px',
-										height: this.flipPageProp.fontSize + 'px'
+										'margin-top': this.flipPageProp
+											.lineHeight + 'px',
+										height: this.flipPageProp
+											.fontSize + 'px'
 									}
 								}, text)
-							}) : (item.type == 'nextLoading' || item.type == 'prevLoading') ? [
+							}) : (item.type == 'nextLoading' || item.type ==
+								'prevLoading') ? [
 								h('div', {
 									class: 'loading',
 									style: {
@@ -389,8 +381,8 @@
 										'justify-content': 'center'
 									}
 								}, [
-									h('page-refresh', {
-										props: {
+									h('div', {
+										style: {
 											color: this.colorSync
 										}
 									}, '正在加载内容')
@@ -413,79 +405,63 @@
 							]),
 							h('div', {
 								class: 'flip-item-bg',
-								style: {
-									position: 'absolute',
-									width: '100%',
-									height: '150vh',
-									top: '50%',
-									left: '100%',
-									transform: 'translateY(-50%)',
-									'box-shadow': '-5px 0 20px rgba(0,0,0,0.1)',
-									background: this.bgColorSync
-								}
+								style: this.createBgStyle(item)
 							}),
 							h('div', {
 								class: 'flip-item-shadow',
-								style: {
-									position: 'absolute',
-									width: 0,
-									height: '100%',
-									top: 0,
-									right: 0,
-									'z-index': 9
-								}
+								style: this.createShadowStyle(item)
 							})
 						])
 					}))
 				}
 			})
-			
-			Vue.component('page-refresh', {
-				props: {
-					color: {
-						type: String,
-						default: '#333'
-					}
-				},
-				render: function (h) {
-					const title = this.$slots.default
-					return h('div', {
-						class: 'page-refresh',
-						style: {
-							width: '100%',
-							height: '100rpx',
-							display:' flex',
-							'align-items': 'center',
-							'justify-content': 'center'
-						}
-					}, [
-						h('div', {
-							style: {
-								'border-top': '5rpx solid' + this.color,
-								'border-left': '5rpx solid' + this.color,
-								'border-bottom': '5rpx solid' + this.color,
-								'border-right': '5rpx solid transparent',
-								width: '30rpx',
-								height: '30rpx',
-								'border-radius': '30rpx',
-								'margin-right': '10rpx',
-								animation: 'animationRotate 1s linear infinite'
-							}
-						}, [
-							h('style', {
-								attrs: {
-									type: 'text/css'
-								}
-							}, animationRotate)
-						]),
-						h('p', {
-							style: {
-								color: this.color
-							}
-						}, title)
-					])
-				}
-			})
+
+			// Vue.component('page-refresh', {
+			// 	props: {
+			// 		color: {
+			// 			type: String,
+			// 			default: '#333'
+			// 		}
+			// 	},
+			// 	render: function(h) {
+			// 		const title = this.$slots.default
+			// 		return h('div', {
+			// 			class: 'page-refresh',
+			// 			style: {
+			// 				width: '100%',
+			// 				height: '100rpx',
+			// 				display: ' flex',
+			// 				'align-items': 'center',
+			// 				'justify-content': 'center'
+			// 			}
+			// 		}, [
+			// 			h('div', {
+			// 				style: {
+			// 					'border-top': '5rpx solid' + this.color,
+			// 					'border-left': '5rpx solid' + this.color,
+			// 					'border-bottom': '5rpx solid' + this.color,
+			// 					'border-right': '5rpx solid transparent',
+			// 					width: '30rpx',
+			// 					height: '30rpx',
+			// 					'border-radius': '30rpx',
+			// 					'margin-right': '10rpx',
+			// 					animation: 'animationRotate 1s linear infinite'
+			// 				}
+			// 			}, [
+			// 				h('style', {
+			// 					attrs: {
+			// 						type: 'text/css'
+			// 					}
+			// 				}, animationRotate)
+			// 			]),
+			// 			h('p', {
+			// 				style: {
+			// 					color: this.color
+			// 				}
+			// 			}, title)
+			// 		])
+			// 	}
+			// })
 			// const script = document.createElement('script');
 			// script.src = 'https://cdn.bootcdn.net/ajax/libs/eruda/2.3.3/eruda.js'
 			// script.onload = () => {
@@ -501,9 +477,10 @@
 			},
 			//参数改变
 			propChange(newValue, oldValue) {
-				for ( let i in newValue.pages ) {
-					if ( !this.diff(newValue.pages[i], oldValue.pages.length > 0 ? oldValue.pages[i] : '')) {
+				for (let i in newValue.pages) {
+					if (!this.diff(newValue.pages[i], oldValue.pages.length > 0 ? oldValue.pages[i] : '')) {
 						this.pagesSync = JSON.parse(JSON.stringify(newValue.pages));
+						// this.disableTouch = false;
 						this.pagesChange();
 						break;
 					}
@@ -531,8 +508,9 @@
 					this.viewHeight = flip.offsetHeight;
 					const flipItems = flip.getElementsByClassName('flip-item');
 					Object.keys(flipItems).forEach(key => {
-						if ( key >= 0 ) {
-							if (parseInt(flipItems[key].getAttribute('data-id')) < this.flipPageProp.currentPageDataId) {
+						if (key >= 0) {
+							if (parseInt(flipItems[key].getAttribute('data-id')) < this.flipPageProp
+								.currentPageDataId) {
 								this.pageAnimation(flipItems[key], 'next', -this.viewWidth);
 							} else {
 								this.pageAnimation(flipItems[key], 'next', 0);
@@ -542,42 +520,43 @@
 					this.disableTouch = false;
 				})
 			},
-			diff(obj1, obj2){
-			    var o1 = obj1 instanceof Object;
-			    var o2 = obj2 instanceof Object;
-			    // 判断是不是对象
-			    if (!o1 || !o2) {
-			        return obj1 === obj2;
-			    }
-			
-			    //Object.keys() 返回一个由对象的自身可枚举属性(key值)组成的数组,
-			    //例如：数组返回下表：let arr = ["a", "b", "c"];console.log(Object.keys(arr))->0,1,2;
-			    if (Object.keys(obj1).length !== Object.keys(obj2).length) {
-			        return false;
-			    }
-			
-			    for (var o in obj1) {
-			        var t1 = obj1[o] instanceof Object;
-			        var t2 = obj2[o] instanceof Object;
-			        if (t1 && t2) {
-			            return this.diff(obj1[o], obj2[o]);
-			        } else if (obj1[o] !== obj2[o]) {
-			            return false;
-			        }
-			    }
-			    return true;
+			diff(obj1, obj2) {
+				var o1 = obj1 instanceof Object;
+				var o2 = obj2 instanceof Object;
+				// 判断是不是对象
+				if (!o1 || !o2) {
+					return obj1 === obj2;
+				}
+
+				//Object.keys() 返回一个由对象的自身可枚举属性(key值)组成的数组,
+				//例如：数组返回下表：let arr = ["a", "b", "c"];console.log(Object.keys(arr))->0,1,2;
+				if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+					return false;
+				}
+
+				for (var o in obj1) {
+					var t1 = obj1[o] instanceof Object;
+					var t2 = obj2[o] instanceof Object;
+					if (t1 && t2) {
+						return this.diff(obj1[o], obj2[o]);
+					} else if (obj1[o] !== obj2[o]) {
+						return false;
+					}
+				}
+				return true;
 			},
-			getPageActived (value) {
+			getPageActived(value) {
 				const flip = document.getElementById('flipPage')
 				const flipItems = flip.getElementsByClassName('flip-item');
 				const pageActivedIndex = Object.keys(flipItems).findIndex(key => {
-					if ( key >= 0 ) return parseInt(flipItems[key].getAttribute('data-id')) == this.flipPageProp.currentPageDataId
+					if (key >= 0) return parseInt(flipItems[key].getAttribute('data-id')) == this.flipPageProp
+						.currentPageDataId
 				});
 				const pageActivedPrevIndex = pageActivedIndex - 1 >= 0 ? pageActivedIndex - 1 : -1;
 				const pageActived = flipItems[pageActivedIndex];
 				const pageActivedPrev = pageActivedPrevIndex > -1 ? flipItems[pageActivedPrevIndex] : null;
-				if ( pageActived.getAttribute('type') == 'bottom' ) {
-					if ( value == 0 ) {
+				if (pageActived.getAttribute('type') == 'bottom') {
+					if (value == 0) {
 						this.triggerShowToast({
 							title: '已经到最后了'
 						})
@@ -585,8 +564,8 @@
 					} else {
 						return pageActivedPrev
 					}
-				} else if ( pageActived.getAttribute('type') == 'top' ) {
-					if ( value < 0 ) {
+				} else if (pageActived.getAttribute('type') == 'top') {
+					if (value < 0) {
 						this.triggerShowToast({
 							title: '已经到最前面了'
 						})
@@ -594,8 +573,8 @@
 					} else {
 						return pageActived
 					}
-				} else if ( pageActived.getAttribute('type') == 'prevLoading' ) {
-					if ( value < 0 ) {
+				} else if (pageActived.getAttribute('type') == 'prevLoading') {
+					if (value < 0) {
 						this.triggerShowToast({
 							title: '请等待内容加载'
 						})
@@ -603,8 +582,8 @@
 					} else {
 						return pageActived
 					}
-				} else if ( pageActived.getAttribute('type') == 'nextLoading' ) {
-					if ( value == 0 ) {
+				} else if (pageActived.getAttribute('type') == 'nextLoading') {
+					if (value == 0) {
 						this.triggerShowToast({
 							title: '请等待内容加载'
 						})
@@ -613,7 +592,7 @@
 						return pageActivedPrev
 					}
 				} else {
-					if ( value == 0 ) {
+					if (value == 0) {
 						return pageActived
 					} else {
 						return pageActivedPrev
@@ -668,7 +647,8 @@
 				if (this.pageEl) {
 					this.disableTouch = true;
 					if (this.touchTime <= 200) {
-						const duration = (this.flipPageProp.pageType == 'real' || this.flipPageProp.pageType == 'cover') ? 1000 : 0
+						const duration = (this.flipPageProp.pageType == 'real' || this.flipPageProp.pageType == 'cover') ?
+							1000 : 0
 						const value = this.pageDirection == 'next' ? 1 : -1;
 						this.pageDuration(this.pageEl, duration);
 						this.$nextTick(() => {
@@ -679,7 +659,8 @@
 							}, duration + 50)
 						})
 					} else {
-						const duration = (this.flipPageProp.pageType == 'real' || this.flipPageProp.pageType == 'cover') ? 500 : 0
+						const duration = (this.flipPageProp.pageType == 'real' || this.flipPageProp.pageType == 'cover') ?
+							500 : 0
 						if (Math.abs(this.moveX) >= this.viewWidth / 2.5) {
 							const value = this.pageDirection == 'next' ? 1 : -1;
 							this.pageDuration(this.pageEl, duration);
@@ -704,18 +685,75 @@
 					this.resetPageMove();
 				}
 			},
+			createItemStyle(item) {
+				return {
+					position: 'absolute',
+					width: '100%',
+					height: '100%',
+					top: 0,
+					left: 0,
+					'box-sizing': 'border-box',
+					overflow: 'hidden',
+					'z-index': -item.dataId,
+					transform: item.dataId < this.flipPageProp.currentPageDataId ? `translateX(${-this.viewWidth}px)` : ''
+				}
+			},
+			createContentStyle(item) {
+				return {
+					position: 'absolute',
+					width: '100%',
+					height: '100%',
+					left: 0,
+					top: 0,
+					'box-sizing': 'border-box',
+					padding: `${this.flipPageProp.topGap}px ${this.flipPageProp.slide}px ${this.flipPageProp.bottomGap}px ${this.flipPageProp.slide}px`,
+					background: this.bgColorSync,
+					color: this.colorSync,
+					'font-size': this.flipPageProp.fontSize + 'px',
+					transform: item.dataId < this.flipPageProp.currentPageDataId ? this.flipPageProp.pageType == 'real' ?
+						`translateX(${-this.viewWidth}px)` : 'translateX(0)' : ''
+				}
+			},
+			createBgStyle(item) {
+				return {
+					position: 'absolute',
+					width: '100%',
+					height: '150vh',
+					top: '50%',
+					left: '100%',
+					transform: 'translateY(-50%)',
+					'box-shadow': '-5px 0 20px rgba(0,0,0,0.1)',
+					background: this.bgColorSync,
+					transform: item.dataId < this.flipPageProp.currentPageDataId ? this.flipPageProp.pageType == 'real' ?
+						`translate(${-this.viewWidth}px, -50%)` : 'translateY(-50%)' : 'translateY(-50%)'
+				}
+			},
+			createShadowStyle(item) {
+				return {
+					position: 'absolute',
+					width: 0,
+					height: '100%',
+					top: 0,
+					right: 0,
+					'z-index': 9,
+					'box-shadow': item.dataId < this.flipPageProp.currentPageDataId ? this.flipPageProp.pageType == 'real' ? '0 0 60px 30px rgba(0,0,0,0.5)' : '' : ''
+				}
+			},
 			//翻页动画
 			pageAnimation(el, direction, moveX, rotateZ = 0) {
-				let lateX = direction == 'next' ? moveX : moveX - this.viewWidth;
+				const lateX = direction == 'next' ? moveX : moveX - this.viewWidth;
 				const content = el.getElementsByClassName('flip-item-content')[0];
 				const bg = el.getElementsByClassName('flip-item-bg')[0];
 				const shadow = el.getElementsByClassName('flip-item-shadow')[0];
 				el.style.transform = `translateX(${lateX}px)`;
-				content.style.transform = this.flipPageProp.pageType == 'real' ? `translateX(${-lateX}px)` : 'translateX(0)';
-				bg.style.transform = this.flipPageProp.pageType == 'real' ? `translate(${lateX}px, -50%) rotateZ(${rotateZ}deg)` : 'translateY(-50%)';
-				shadow.style.boxShadow = '0 0 60px ' + (this.flipPageProp.pageType == 'real' ? Math.abs(lateX) > 30 ? 30 : Math.abs(lateX) : 0) + 'px rgba(0,0,0,0.5)';
+				content.style.transform = this.flipPageProp.pageType == 'real' ? `translateX(${-lateX}px)` :
+					'translateX(0)';
+				bg.style.transform = this.flipPageProp.pageType == 'real' ?
+					`translate(${lateX}px, -50%) rotateZ(${rotateZ}deg)` : 'translateY(-50%)';
+				shadow.style.boxShadow = '0 0 60px ' + (this.flipPageProp.pageType == 'real' ? Math.abs(lateX) > 30 ? 30 :
+					Math.abs(lateX) : 0) + 'px rgba(0,0,0,0.5)';
 			},
-			pageDuration (el, duration) {
+			pageDuration(el, duration) {
 				const content = el.getElementsByClassName('flip-item-content')[0];
 				const bg = el.getElementsByClassName('flip-item-bg')[0];
 				const shadow = el.getElementsByClassName('flip-item-shadow')[0];
@@ -724,7 +762,7 @@
 				bg.style.transition = duration > 0 ? 'transform ' + duration + 'ms' : '';
 				shadow.style.transition = duration > 0 ? 'box-shadow ' + duration + 'ms' : '';
 			},
-			resetPageMove () {
+			resetPageMove() {
 				this.pageEl ? this.pageDuration(this.pageEl, 0) : false;
 				this.disableTouch = false;
 				this.moveX = 0;
@@ -742,7 +780,7 @@
 				this.showToast(e);
 				// #endif
 			},
-			triggerChangePageActived (value) {
+			triggerChangePageActived(value) {
 				// #ifndef H5
 				this.$ownerInstance.callMethod('changePageActived', value);
 				// #endif
@@ -750,7 +788,7 @@
 				this.changePageActived(value);
 				// #endif
 			},
-			triggerResetPage () {
+			triggerResetPage() {
 				const index = this.pagesSync.findIndex(page => page.dataId == this.flipPageProp.currentPageDataId);
 				const data = {
 					start: this.pagesSync[index].start,

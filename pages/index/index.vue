@@ -35,8 +35,8 @@
 		},
 		onReady() {
 			let contents = [{
-				chapter: 2,
-				content: this.getContent(2),
+				chapter: 3,
+				content: this.getContent(3),
 				isStart: false,
 				isEnd: false
 			}]
@@ -50,7 +50,7 @@
 				page.init({
 					contents: contents,
 					start: 0,
-					currentChapter: 2
+					currentChapter: 3
 				})
 			}
 		},

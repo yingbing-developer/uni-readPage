@@ -163,10 +163,10 @@
 				});
 			},
 			currentChange (e) {
-				this.pageInfo = e;
 				if ( e.dataId != this.pageInfo.dataId ) {
 					this.$emit('currentChange', e)
 				}//抛出阅读页面改变事件
+				this.pageInfo = e;
 			},
 			currentChangeNoChater (e) {
 				this.$emit('currentChange', e)
