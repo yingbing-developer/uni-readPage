@@ -17,7 +17,7 @@
 			:enablePreload="enablePreload"
 			@loadmore="loadmore"
 			@preload="preload"
-			@currentChange="currentChangeNoChater">
+			@currentChange="currentChange">
 			</flip-page>
 			<!-- 翻页模式 -->
 			
@@ -52,7 +52,7 @@
 			:slide="prop.slide"
 			:topGap="prop.topGap"
 			:bottomGap="prop.bottomGap"
-			@currentChange="currentChange"
+			@currentChange="currentChangeNoChater"
 			@setCatalog="setCatalog"></page-no-chapter>
 		</template>
 	</view>
@@ -163,8 +163,10 @@
 				});
 			},
 			currentChange (e) {
-				if ( e.dataId != this.pageInfo.dataId ) this.$emit('currentChange', e) //抛出阅读页面改变事件
 				this.pageInfo = e;
+				if ( e.dataId != this.pageInfo.dataId ) {
+					this.$emit('currentChange', e)
+				}//抛出阅读页面改变事件
 			},
 			currentChangeNoChater (e) {
 				this.$emit('currentChange', e)

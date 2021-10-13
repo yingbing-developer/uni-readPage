@@ -257,8 +257,10 @@
 				}
 			},
 			currentChange() {
+				const types = ['top', 'bottom', 'prevLoading', 'nextLoading'];
 				const index = this.pages.findIndex(page => page.dataId == this.currentPageDataId);
-				let pageInfo = this.pages[index];
+				const type = this.pages[index].type;
+				let pageInfo = types.indexOf(type) == -1 ? this.pages[index] : (type == 'top' || type == 'prevLoading') ? this.pages[index + 1] : this.pages[index - 1];
 				const nowChapters = this.pages.filter(item => item.chapter == pageInfo.chapter)
 				pageInfo.totalPage = nowChapters.length;
 				pageInfo.currentPage = nowChapters.findIndex(item => item.dataId == pageInfo.dataId) + 1;
@@ -276,8 +278,15 @@
 
 <script lang="renderjs" type="module" module="flipPage">
 	let myFlipPageDom
+	const animationRotate = `@keyframes animationRotate{
+	    0% {
+	      transform: rotateZ(0);
+	    }
+	    100% {
+	      transform: rotateZ(360deg);
+	    }
+	}`
 	import Vue from 'vue'
-	import PageRefresh from '../page-refresh/page-refresh.vue'
 	export default {
 		data() {
 			return {
@@ -380,7 +389,11 @@
 										'justify-content': 'center'
 									}
 								}, [
-									h(PageRefresh, '正在加载内容')
+									h('page-refresh', {
+										props: {
+											color: this.colorSync
+										}
+									}, '正在加载内容')
 								])
 							] : [
 								h('div', {
@@ -424,6 +437,53 @@
 							})
 						])
 					}))
+				}
+			})
+			
+			Vue.component('page-refresh', {
+				props: {
+					color: {
+						type: String,
+						default: '#333'
+					}
+				},
+				render: function (h) {
+					const title = this.$slots.default
+					return h('div', {
+						class: 'page-refresh',
+						style: {
+							width: '100%',
+							height: '100rpx',
+							display:' flex',
+							'align-items': 'center',
+							'justify-content': 'center'
+						}
+					}, [
+						h('div', {
+							style: {
+								'border-top': '5rpx solid' + this.color,
+								'border-left': '5rpx solid' + this.color,
+								'border-bottom': '5rpx solid' + this.color,
+								'border-right': '5rpx solid transparent',
+								width: '30rpx',
+								height: '30rpx',
+								'border-radius': '30rpx',
+								'margin-right': '10rpx',
+								animation: 'animationRotate 1s linear infinite'
+							}
+						}, [
+							h('style', {
+								attrs: {
+									type: 'text/css'
+								}
+							}, animationRotate)
+						]),
+						h('p', {
+							style: {
+								color: this.color
+							}
+						}, title)
+					])
 				}
 			})
 			// const script = document.createElement('script');
