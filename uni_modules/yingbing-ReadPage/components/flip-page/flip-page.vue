@@ -317,6 +317,11 @@
 			const flip = document.getElementById('flipPage');
 			this.viewWidth = flip.offsetWidth;
 			this.viewHeight = flip.offsetHeight;
+			
+			const style = document.createElement('style')
+			style.type = 'text/css'
+			style.innerHTML = animationRotate
+			document.head.appendChild(style)
 			new Vue({
 				el: '#flip-content',
 				render: (h) => {
@@ -385,7 +390,7 @@
 										style: {
 											color: this.colorSync
 										}
-									}, '正在加载内容')
+									}, '正在加载内容...')
 								])
 							] : [
 								h('div', {
@@ -447,18 +452,7 @@
 			// 					'margin-right': '10rpx',
 			// 					animation: 'animationRotate 1s linear infinite'
 			// 				}
-			// 			}, [
-			// 				h('style', {
-			// 					attrs: {
-			// 						type: 'text/css'
-			// 					}
-			// 				}, animationRotate)
-			// 			]),
-			// 			h('p', {
-			// 				style: {
-			// 					color: this.color
-			// 				}
-			// 			}, title)
+			// 			})
 			// 		])
 			// 	}
 			// })

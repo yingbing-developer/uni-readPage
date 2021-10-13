@@ -178,13 +178,18 @@
 			init (data) {
 				if ( !this.noChapter ) {
 					this.contents = data.contents;
+					const dataSync = {
+						contents: this.contents,
+						start: parseInt(data.start),
+						currentChapter: parseInt(data.currentChapter)
+					}
 					if ( this.pageType == 'scroll' ) {
-						this.$refs.scrollPage.init(data)
+						this.$refs.scrollPage.init(dataSync)
 					} else {
-						this.$refs.filpPage.init(data)
+						this.$refs.filpPage.init(dataSync)
 					}
 				} else {
-					this.$refs.pageNoChapter.init(data);
+					this.$refs.pageNoChapter.init(dataSync);
 				}
 			},
 			//重计算
