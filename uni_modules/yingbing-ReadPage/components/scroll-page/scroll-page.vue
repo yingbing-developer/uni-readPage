@@ -4,16 +4,20 @@
 	'background': bgColor}">
 		<div>
 			<div class="pulldown-wrapper">
-				<page-refresh class="pulldown-loading" :style="{'padding-top': topGap + 'px'}" :color="color">下拉加载内容
-				</page-refresh>
+				<div class="pulldown-loading">
+					<page-refresh :padding="`${topGap}px 0 0 0`" :color="color">下拉加载内容
+					</page-refresh>
+				</div>
 				<div class='pulldown-finish' :style="{color: color, 'padding-top': topGap + 'px'}"></div>
 			</div>
 			<div :style="{height: topGap + 'px', width: '100%'}"></div>
 			<div id="scrollContent"></div>
 			<div :style="{height: bottomGap + 'px', width: '100%'}"></div>
 			<div class="pullup-tips">
-				<page-refresh class="pullup-loading" :style="{'padding-top': topGap + 'px'}" :color="color">正在加载内容
-				</page-refresh>
+				<div class="pullup-loading">
+					<page-refresh :padding="`0 0 ${bottomGap}px 0`" :color="color">正在加载内容
+					</page-refresh>
+				</div>
 				<div class='pullup-finish' :style="{color: color, 'padding-top': topGap + 'px'}"></div>
 			</div>
 		</div>

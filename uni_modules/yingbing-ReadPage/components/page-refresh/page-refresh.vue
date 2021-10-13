@@ -10,12 +10,17 @@
 			color: {
 				type: String,
 				default: '#333333'
+			},
+			padding: {
+				type: String,
+				default: '0 0 0 0'
 			}
 		},
 		computed: {
 			refreshProp () {
 				return {
-					color: this.color
+					color: this.color,
+					padding: this.padding
 				}
 			}
 		}
@@ -36,10 +41,13 @@
 	export default {
 		data () {
 			return {
-				colorSync: ''
+				colorSync: '',
+				paddingSync: ''
 			}
 		},
 		mounted () {
+			this.colorSync = this.refreshProp.color
+			this.paddingSync = this.refreshProp.padding
 			new Vue({
 				el: '#page-refresh',
 				render: (h) => {
@@ -51,7 +59,8 @@
 							height: '100rpx',
 							display:' flex',
 							'align-items': 'center',
-							'justify-content': 'center'
+							'justify-content': 'center',
+							padding: this.paddingSync
 						}
 					}, [
 						h('div', {
@@ -91,6 +100,9 @@
 			refreshPropChange (newValue, oldValue) {
 				if ( newValue.color != oldValue.color ) {
 					this.colorSync = newValue.color
+				}
+				if ( newValue.padding != oldValue.padding ) {
+					this.paddingSync = newValue.padding
 				}
 			}
 		}
