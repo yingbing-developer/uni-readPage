@@ -47,7 +47,7 @@
 | 参数 | 类型 | 是否必传 | 可选值 | 说明 |
 | :----- | :----: | :---- |
 | status | String | 是 | success/fail/timeout | 请求回调状态 |
-| content/contents | String | 是 | loadmore方法需要传入content对象, preload方法需要传入content对象集合contents | 请求回调内容 |
+| content/contents | Object | 是 | loadmore方法需要传入content对象, preload方法需要传入content对象集合contents | 请求回调内容 |
 
 #章节模式 currentChange事件参数currentInfo介绍
 | 键名 | 类型  | 说明 |
