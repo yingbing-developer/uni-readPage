@@ -37,6 +37,7 @@
 			let contents = [{
 				chapter: 3,
 				content: this.getContent(3),
+				title: '第三章',
 				isStart: false,
 				isEnd: false
 			}]
@@ -87,14 +88,20 @@
 						let contents = [{
 							chapter: 3,
 							content: this.getContent(3),
+							title: '第三章',
+							isStart: false,
 							isEnd: false
 						},{
 							chapter: 4,
 							content: this.getContent(4),
+							title: '第四章',
+							isStart: false,
 							isEnd: false
 						},{
 							chapter: 5,
 							content: this.getContent(5),
+							title: '第五章',
+							isStart: false,
 							isEnd: false
 						}]
 						const { page } = this.$refs;
@@ -111,6 +118,7 @@
 					callback('success', {
 						chapter: chapter,
 						content: this.getContent(chapter),
+						title: '第' + chapter + '章',
 						isStart: chapter == 1,
 						isEnd: chapter == 7
 					});
@@ -126,6 +134,7 @@
 							chapter: chapters[i],
 							start: 0,
 							content: this.getContent(chapters[i]),
+							title: '第' + chapters[i] + '章',
 							isStart: chapters[i] == 1,
 							isEnd: chapters[i] == 7
 						})
