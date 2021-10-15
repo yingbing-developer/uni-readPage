@@ -611,9 +611,9 @@
 					const nowChapter = parseInt(this.pagesSync[0].chapter)
 					const nowContentIndex = this.scrollPageProp.contents.findIndex(item => item.chapter == nowChapter);
 					if ( !this.scrollPageProp.contents[nowContentIndex].isStart ) {
-						bs.disable();
 						const prevContentIndex = this.scrollPageProp.contents.findIndex(item => item.chapter == nowChapter - 1);
 						if (prevContentIndex > -1) {
+							bs.disable();
 							if ( document.getElementsByClassName('pullup-loading')[0].style.display != 'flex' ) {
 								document.getElementsByClassName('pullup-loading')[0].style.display = 'flex';
 								document.getElementsByClassName('pullup-finish')[0].innerHTML = ''
