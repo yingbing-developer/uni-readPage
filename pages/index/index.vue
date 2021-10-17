@@ -10,6 +10,8 @@
 		:slide="slide"
 		:enablePreload="enablePreload"
 		:noChapter="noChapter"
+		enableClick
+		@clickTo="clickTo"
 		@loadmore="loadmoreContent"
 		@preload="preloadContent"
 		@currentChange="currentChange"
@@ -56,6 +58,9 @@
 			}
 		},
 		methods: {
+			clickTo () {
+				console.log('点击')
+			},
 			currentChange (e) {
 				console.log(e);
 			},
