@@ -484,7 +484,7 @@
 						}, TIME_WATING)
 						break;
 					default:
-						console.log('重置pulldown')
+						// console.log('重置pulldown')
 				}
 				this.triggerResetPulldownStatus();
 			},
@@ -523,7 +523,7 @@
 						bs.enable();
 						break;
 					default:
-						console.log('重置pullup')
+						// console.log('重置pullup')
 				}
 				this.triggerResetPullupStatus();
 			},

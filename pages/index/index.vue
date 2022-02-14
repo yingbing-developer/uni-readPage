@@ -24,7 +24,7 @@
 		data() {
 			return {
 				pages: [],
-				pageType: 'scroll',
+				pageType: 'real',
 				scrollTop: 400,
 				fontsize: 20,
 				lineHeight: 15,

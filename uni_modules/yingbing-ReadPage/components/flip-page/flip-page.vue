@@ -686,6 +686,7 @@
 			},
 			pageTouchend(e) {
 				window.clearInterval(this.touchTimer);
+				this.touchTimer = null;
 				if (this.disableTouch) {
 					return;
 				}
@@ -699,8 +700,8 @@
 						this.$nextTick(() => {
 							this.pageAnimation(this.pageEl, this.pageDirection, -value * this.viewWidth);
 							window.setTimeout(() => {
-								this.resetPageMove();
 								this.triggerChangePageActived(value);
+								this.resetPageMove();
 							}, duration + 50)
 						})
 					} else {
@@ -712,8 +713,8 @@
 							this.$nextTick(() => {
 								this.pageAnimation(this.pageEl, this.pageDirection, -value * this.viewWidth);
 								window.setTimeout(() => {
-									this.resetPageMove();
 									this.triggerChangePageActived(value);
+									this.resetPageMove();
 								}, duration + 50)
 							})
 						} else {
@@ -756,7 +757,7 @@
 					color: this.colorSync,
 					'font-size': this.flipPageProp.fontSize + 'px',
 					transform: item.dataId < this.flipPageProp.currentPageDataId ? this.flipPageProp.pageType == 'real' ?
-						`translateX(${-this.viewWidth}px)` : 'translateX(0)' : ''
+						`translateX(${this.viewWidth}px)` : 'translateX(0)' : ''
 				}
 			},
 			createBgStyle(item) {
