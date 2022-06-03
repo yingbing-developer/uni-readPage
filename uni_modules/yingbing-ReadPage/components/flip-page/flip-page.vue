@@ -656,14 +656,15 @@
 					let touch = e.touches[0];
 					this.touchstart.x = touch.pageX;
 					this.touchstart.y = touch.pageY;
-					if (this.touchstart.x > (this.viewWidth / 4) * 3) {
-						this.pageEl = this.getPageActived(0);
-						this.pageDirection = 'next'
-					}
-					if (this.touchstart.x < (this.viewWidth / 4)) {
-						this.pageEl = this.getPageActived(-1);
-						this.pageDirection = 'prev'
-					}
+					//获取点击位置，判断向哪里翻页
+					// if (this.touchstart.x > (this.viewWidth / 4) * 3) {
+					// 	this.pageEl = this.getPageActived(0);
+					// 	this.pageDirection = 'next'
+					// }
+					// if (this.touchstart.x < (this.viewWidth / 4)) {
+					// 	this.pageEl = this.getPageActived(-1);
+					// 	this.pageDirection = 'prev'
+					// }
 				}
 			},
 			pageTouchmove(e) {
@@ -677,10 +678,19 @@
 						let maxDeg = height / 5;
 						let rotateZ = this.pageDirection == 'next' ? ((touch.pageY - height) / maxDeg) : -((touch.pageY -
 							height) / maxDeg);
-						if (this.touchstart.x > (this.viewWidth / 4) * 3 || this.touchstart.x < (this.viewWidth / 4)) {
-							this.moveX = touch.pageX - this.touchstart.x;
-						}
+						// if (this.touchstart.x > (this.viewWidth / 4) * 3 || this.touchstart.x < (this.viewWidth / 4)) {
+						this.moveX = touch.pageX - this.touchstart.x;
+						// }
 						this.pageAnimation(this.pageEl, this.pageDirection, this.moveX, rotateZ);
+					} else {
+						let touch = e.touches[0];
+						if ( touch.pageX < this.touchstart.x ) {
+							this.pageEl = this.getPageActived(0);
+							this.pageDirection = 'next'
+						} else {
+							this.pageEl = this.getPageActived(-1);
+							this.pageDirection = 'prev'
+						}
 					}
 				}
 			},
@@ -690,11 +700,22 @@
 				if (this.disableTouch) {
 					return;
 				}
+				if ( !this.pageEl && this.touchTime <= 200 ) {
+					//获取点击位置，判断向哪里翻页
+					if (this.touchstart.x > (this.viewWidth / 4) * 3) {
+						this.pageEl = this.getPageActived(0);
+						this.pageDirection = 'next'
+					}
+					if (this.touchstart.x < (this.viewWidth / 4)) {
+						this.pageEl = this.getPageActived(-1);
+						this.pageDirection = 'prev'
+					}
+				}
 				if (this.pageEl) {
 					this.disableTouch = true;
 					if (this.touchTime <= 200) {
 						const duration = (this.flipPageProp.pageType == 'real' || this.flipPageProp.pageType == 'cover') ?
-							1000 : 0
+							600 : 0
 						const value = this.pageDirection == 'next' ? 1 : -1;
 						this.pageDuration(this.pageEl, duration);
 						this.$nextTick(() => {
@@ -706,8 +727,8 @@
 						})
 					} else {
 						const duration = (this.flipPageProp.pageType == 'real' || this.flipPageProp.pageType == 'cover') ?
-							500 : 0
-						if (Math.abs(this.moveX) >= this.viewWidth / 2.5) {
+							300 : 0
+						if (Math.abs(this.moveX) >= this.viewWidth / 4) {
 							const value = this.pageDirection == 'next' ? 1 : -1;
 							this.pageDuration(this.pageEl, duration);
 							this.$nextTick(() => {
