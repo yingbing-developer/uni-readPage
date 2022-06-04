@@ -47,6 +47,7 @@
 		data () {
 			return {
 				content: '',
+				custom: [],
 				isStart: false,
 				chapter: null,
 				resolve: null
@@ -69,15 +70,43 @@
 			}
 		},
 		methods: {
-			computed ({content, chapter}) {
+			computed ({content, chapter, custom}) {
 				return new Promise((resolve) => {
-					this.content = content;
+					this.content = content || '';
+					this.custom = custom || [];
 					this.chapter = chapter || null;
-					this.isStart = true;
 					this.resolve = resolve;
+					content ? this.isStart = true : this.reset();
+					
 				})
 			},
-			reset (pages) {
+			reset (pages = []) {
+				if ( this.custom.length > 0 ) {
+					pages.length > 0 ? pages[pages.length - 1].isLastPage = false : null
+					this.custom.forEach(custom => {
+						let clicks = custom.match(/onclick=\"*([\s\S]*?)\"/ig);
+						if ( clicks ) {
+							clicks.forEach(click => {
+								let name = click.match(/onclick=\"*([\s\S]*?)(\(|\")/)[1]
+								let func = click.match(/onclick=\"*([\s\S]*?)\"/)
+								let args = func[1].replace(name, '')
+								args = args ? args.slice(1, args.length - 1).replace(/\s/g, '') : ''
+								custom = custom.replace(func[0], `onclick="triggerCustomClick('${name}', [${args}])"`)
+							})
+						}
+						let end = pages.length > 0 ? pages[pages.length - 1].end : 0
+						pages.push({
+							chapter: this.chapter,
+							type: 'custom',
+							dataId: this.chapter * 100000 + end,
+							start: end,
+							end: end + 10,
+							isLastPage: false,
+							text: custom
+						})
+					})
+					pages[pages.length - 1].isLastPage = true
+				}
 				this.resolve(pages);
 				this.resolve = null;
 				this.isStart = false;

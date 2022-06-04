@@ -16,7 +16,8 @@
 			:enablePreload="enablePreload"
 			@loadmore="loadmore"
 			@preload="preload"
-			@currentChange="currentChange">
+			@currentChange="currentChange"
+			@customClick="customClick">
 			</flip-page>
 			<!-- 翻页模式 -->
 			
@@ -35,7 +36,8 @@
 			:enablePreload="enablePreload"
 			@loadmore="loadmore"
 			@preload="preload"
-			@scrollEnd="currentChange">
+			@scrollEnd="currentChange"
+			@customClick="customClick">
 			</scroll-page>
 			<!-- 滚动模式 -->
 		</template>
@@ -263,6 +265,9 @@
 					this.$emit('currentChange', e)
 				}//抛出阅读页面改变事件
 				this.pageInfo = e;
+			},
+			customClick (e) {
+				this.$emit(e.name, ...e.args)
 			},
 			currentChangeNoChater (e) {
 				this.$emit('currentChange', e)

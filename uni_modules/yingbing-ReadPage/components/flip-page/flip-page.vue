@@ -123,7 +123,7 @@
 							if (data.currentChapter == item.chapter) {
 								let index = Object.keys(pages).findIndex(key => data.start >= pages[
 										key].start &&
-									data.start < pages[key].end)
+									data.start < pages[key].end) || 0
 								this.currentPageDataId = pages[index].dataId;
 							}
 							arr = arr.concat(pages)
@@ -187,6 +187,7 @@
 				return new Promise((resolve) => {
 					this.$refs.computedPage.computed({
 						content: content.content,
+						custom: content.custom,
 						chapter: content.chapter
 					}).then((pages) => {
 						resolve(pages);
@@ -206,9 +207,9 @@
 					if (arr.length > 3) {
 						let reChapter = e.type == 'prev' ? pagesSync[pagesSync.length - 1].chapter : pagesSync[0]
 							.chapter;
-						newPages = pagesSync.filter(item => item.chapter != reChapter && item.type == 'text');
+						newPages = pagesSync.filter(item => item.chapter != reChapter && (item.type == 'text' || item.type == 'custom'));
 					} else {
-						newPages = pagesSync.filter(item => item.type == 'text');
+						newPages = pagesSync.filter(item => (item.type == 'text' || item.type == 'custom'));
 					}
 					const prevIndex = this.contents.findIndex(content => content.chapter == newPages[0].chapter);
 					const nextIndex = this.contents.findIndex(content => content.chapter == newPages[newPages
@@ -242,8 +243,8 @@
 				this.currentChange();
 				const nowType = this.pages[newIndex].type;
 				const newType = this.pages[newIndex + value] ? this.pages[newIndex + value].type : null;
-				if (nowType == 'nextLoading' || nowType == 'prevLoading' || newType == 'nextLoading' || newType ==
-					'prevLoading') {
+				const types = ['nextLoading', 'prevLoading']
+				if ( types.indexOf(nowType) >-1 || types.indexOf(newType) >-1) {
 					if (this.moreLoading) return
 					this.moreLoading = true;
 					const loadChapter = this.pages[newIndex].chapter + value;
@@ -304,7 +305,7 @@
 				const type = this.pages[index].type;
 				let pageInfo = types.indexOf(type) == -1 ? this.pages[index] : (type == 'top' || type == 'prevLoading') ?
 					JSON.parse(JSON.stringify(this.pages[index + 1])) : JSON.parse(JSON.stringify(this.pages[index - 1]));
-				const nowChapters = this.pages.filter(item => item.chapter == pageInfo.chapter)
+				const nowChapters = this.pages.filter(item => item.chapter == pageInfo.chapter && (item.type == 'text' || item.type == 'custom'))
 				const contentIndex = this.contents.findIndex(content => content.chapter == pageInfo.chapter)
 				pageInfo.totalPage = nowChapters.length;
 				pageInfo.currentPage = nowChapters.findIndex(item => item.dataId == pageInfo.dataId) + 1;
@@ -316,6 +317,10 @@
 					title: e.title,
 					icon: 'none'
 				})
+			},
+			//自定义点击事件
+			customClick (e) {
+				this.$emit('customClick', e)
 			}
 		}
 	}
@@ -323,14 +328,14 @@
 
 <script lang="renderjs" type="module" module="flipPage">
 	let myFlipPageDom
-	const animationRotate = `@keyframes animationRotate{
-	    0% {
-	      transform: rotateZ(0);
-	    }
-	    100% {
-	      transform: rotateZ(360deg);
-	    }
-	}`
+	// const animationRotate = `@keyframes animationRotate{
+	//     0% {
+	//       transform: rotateZ(0);
+	//     }
+	//     100% {
+	//       transform: rotateZ(360deg);
+	//     }
+	// }`
 	import Vue from 'vue'
 	export default {
 		data() {
@@ -360,6 +365,20 @@
 			this.viewWidth = flip.offsetWidth;
 			this.viewHeight = flip.offsetHeight;
 			this.currentPageDataIdSync = this.flipPageProp.currentPageDataId
+			window.triggerCustomClick = (name, args) => {
+				// #ifndef H5
+				this.$ownerInstance.callMethod('customClick', {
+					name: name,
+					args: args
+				});
+				// #endif
+				// #ifdef H5
+				this.customClick({
+					name: name,
+					args: args
+				});
+				// #endif
+			}
 			// const style = document.createElement('style')
 			// style.type = 'text/css'
 			// style.innerHTML = animationRotate
@@ -416,7 +435,23 @@
 													.fontSize + 'px'
 											}
 										}, text)
-									}) : (item.type == 'nextLoading' || item.type ==
+									}) : item.type == 'custom' ? [
+										h('div', {
+											class: 'custom',
+											style: {
+												position: 'absolute',
+												width: '100%',
+												height: '100%',
+												top: 0,
+												left: 0,
+												'box-sizing': 'border-box',
+												'overflow': 'hidden'
+											},
+											domProps: {
+												innerHTML: item.text
+											}
+										})
+									] : (item.type == 'nextLoading' || item.type ==
 										'prevLoading') ? [
 										h('div', {
 											class: 'loading',
@@ -868,7 +903,7 @@
 				// #ifdef H5
 				this.resetPage(data);
 				// #endif
-			},
+			}
 		}
 	}
 </script>

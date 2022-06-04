@@ -146,38 +146,6 @@
 					dowhile(0)
 				}, 20)
 			},
-			//加载上个章节
-			// scrolltoUpper(chapter) {
-			// 	this.$emit('loadmore', chapter, (status, contents) => {
-			// 		if (status == 'success') {
-			// 			this.contents = JSON.parse(JSON.stringify(contents))
-			// 			const index = this.contents.findIndex(item => item.chapter == chapter)
-			// 			const data = {
-			// 				content: this.contents[index],
-			// 				type: 'prev'
-			// 			}
-			// 			this.computedPage(data);
-			// 			this.preload(chapter)
-			// 		}
-			// 		this.pulldownStatus = status;
-			// 	})
-			// },
-			// //加载下个章节
-			// scrolltoLower(chapter) {
-			// 	this.$emit('loadmore', chapter, (status, contents) => {
-			// 		if (status == 'success') {
-			// 			this.contents = JSON.parse(JSON.stringify(contents))
-			// 			const index = this.contents.findIndex(item => item.chapter == chapter)
-			// 			const data = {
-			// 				content: this.contents[index],
-			// 				type: 'next'
-			// 			}
-			// 			this.computedPage(data);
-			// 			this.preload(chapter)
-			// 		}
-			// 		this.pullupStatus = status;
-			// 	})
-			// },
 			//加载更多章节
 			loadmore (load) {
 				const chapter = load.chapter;
@@ -240,6 +208,7 @@
 				return new Promise((resolve) => {
 					this.$refs.computedPage.computed({
 						content: content.content,
+						custom: content.custom,
 						chapter: content.chapter
 					}).then((pages) => {
 						resolve(pages);
@@ -272,6 +241,10 @@
 			},
 			resetPullupStatus () {
 				this.pullupStatus = 'none';
+			},
+			//自定义点击事件
+			customClick (e) {
+				this.$emit('customClick', e)
 			}
 		}
 	}
@@ -306,6 +279,20 @@
 			this.initDom.bind(this);
 			THRESHOLD_PULL = this.scrollPageProp.refreshHeight + this.scrollPageProp.topGap;
 			STOP_PULL = THRESHOLD_PULL + 20;
+			window.triggerCustomClick = (name, args) => {
+				// #ifndef H5
+				this.$ownerInstance.callMethod('customClick', {
+					name: name,
+					args: args
+				});
+				// #endif
+				// #ifdef H5
+				this.customClick({
+					name: name,
+					args: args
+				});
+				// #endif
+			}
 			new Vue({
 				el: '#scrollContent',
 				render: (h) => {
@@ -344,7 +331,14 @@
 									'white-space': 'pre-wrap',
 								}
 							}, text)
-						}) : [h('p', {
+						}) : item.type == 'custom' ? [
+							h('div', {
+								class: 'custom',
+								domProps: {
+									innerHTML: item.text
+								}
+							})
+						] : [h('p', {
 							class: 'scroll-text',
 							style: {
 								'text-align': 'center',
@@ -358,6 +352,7 @@
 				}
 			})
 			bs = new BScroll('.scroll-page', {
+				click: true,//开启点击事件
 				scrollY: true,
 				startY: 0,
 				bounce: {
