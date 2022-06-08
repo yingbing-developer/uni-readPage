@@ -326,6 +326,7 @@
 	}
 </script>
 
+<!-- #ifdef H5 || APP-VUE -->
 <script lang="renderjs" type="module" module="flipPage">
 	let myFlipPageDom
 	// const animationRotate = `@keyframes animationRotate{
@@ -907,6 +908,7 @@
 		}
 	}
 </script>
+<!-- #endif -->
 
 <style scoped>
 	.flip-page {

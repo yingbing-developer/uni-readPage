@@ -77,7 +77,6 @@
 					this.chapter = chapter || null;
 					this.resolve = resolve;
 					content ? this.isStart = true : this.reset();
-					
 				})
 			},
 			reset (pages = []) {
@@ -119,6 +118,7 @@
 	}
 </script>
 
+<!-- #ifdef H5 || APP-VUE -->
 <script lang="renderjs" type="module" module="computedPage">
 	let myComputedPageDom;
 	export default {
@@ -234,6 +234,7 @@
 		}
 	}
 </script>
+<!-- #endif -->
 
 <style scoped>
 	.computed-page {

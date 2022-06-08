@@ -47,6 +47,7 @@
 | :----- | :---- | :---- |
 | init | { contents: '小说内容集合', currentChapter: '小说定位章节序号', start: '定位章节的开始阅读开始位置' } | 初始化小说内容 |
 | change | { contents: '小说内容集合', currentChapter: '小说定位章节序号', start: '定位章节的开始阅读开始位置' } | 跳转小说位置 |
+| refresh | 无 | 刷新阅读页面 |
 
 #章节模式 content对象介绍
 | 键名 | 类型 | 说明 |

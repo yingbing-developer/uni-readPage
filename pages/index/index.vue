@@ -28,7 +28,7 @@
 	export default {
 		data() {
 			return {
-				pageType: 'none',
+				pageType: 'real',
 				scrollTop: 400,
 				fontsize: 20,
 				lineHeight: 15,

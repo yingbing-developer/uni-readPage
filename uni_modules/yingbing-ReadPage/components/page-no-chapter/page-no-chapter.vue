@@ -186,7 +186,7 @@
 		}
 	}
 </script>
-
+<!-- #ifdef H5 || APP-VUE -->
 <script lang="renderjs" module="page" type="module">
 	let myPageDom;
 	export default {
@@ -577,14 +577,14 @@
 					let touch = e.touches[0];
 					this.touchstart.x = touch.pageX;
 					this.touchstart.y = touch.pageY;
-					if ( this.touchstart.x > (this.viewWidth / 4) * 3 ) {
-						this.pageEl = this.getPageActived(0);
-						this.pageDirection = 'next'
-					}
-					if ( this.touchstart.x < (this.viewWidth / 4) ) {
-						this.pageEl = this.getPageActived(-1);
-						this.pageDirection = 'prev'
-					}
+					// if ( this.touchstart.x > (this.viewWidth / 4) * 3 ) {
+					// 	this.pageEl = this.getPageActived(0);
+					// 	this.pageDirection = 'next'
+					// }
+					// if ( this.touchstart.x < (this.viewWidth / 4) ) {
+					// 	this.pageEl = this.getPageActived(-1);
+					// 	this.pageDirection = 'prev'
+					// }
 				}
 			},
 			pageTouchmove (e) {
@@ -597,22 +597,43 @@
 						let height = this.viewHeight / 2;
 						let maxDeg = height / 5;
 						let rotateZ = this.pageDirection == 'next' ? ((touch.pageY - height) / maxDeg) : -((touch.pageY - height) / maxDeg);
-						if ( this.touchstart.x > (this.viewWidth / 4) * 3 || this.touchstart.x < (this.viewWidth / 4) ) {
-							this.moveX = touch.pageX - this.touchstart.x;
-						}
+						// if ( this.touchstart.x > (this.viewWidth / 4) * 3 || this.touchstart.x < (this.viewWidth / 4) ) {
+						this.moveX = touch.pageX - this.touchstart.x;
+						// }
 						this.pageAnimation(this.moveX, rotateZ);
+					} else {
+						let touch = e.touches[0];
+						if ( touch.pageX < this.touchstart.x ) {
+							this.pageEl = this.getPageActived(0);
+							this.pageDirection = 'next'
+						} else {
+							this.pageEl = this.getPageActived(-1);
+							this.pageDirection = 'prev'
+						}
 					}
 				}
 			},
 			pageTouchend (e) {
 				window.clearInterval(this.touchTimer);
+				this.touchTimer = null
 				if ( this.pageWating ) {
 					return;
+				}
+				if ( !this.pageEl && this.touchTime <= 200 ) {
+					//获取点击位置，判断向哪里翻页
+					if (this.touchstart.x > (this.viewWidth / 4) * 3) {
+						this.pageEl = this.getPageActived(0);
+						this.pageDirection = 'next'
+					}
+					if (this.touchstart.x < (this.viewWidth / 4)) {
+						this.pageEl = this.getPageActived(-1);
+						this.pageDirection = 'prev'
+					}
 				}
 				if ( this.pageEl ) {
 					this.pageWating = true;
 					if ( this.touchTime <= 200 ) {
-						let duration = (this.pageProp.pageType == 'real' || this.pageProp.pageType == 'cover') ? 1000 : 0
+						let duration = (this.pageProp.pageType == 'real' || this.pageProp.pageType == 'cover') ? 600 : 0
 						let value = this.pageDirection == 'next' ? 1 : -1;
 						this.pageDuration(duration);
 						this.$nextTick(() => {
@@ -623,8 +644,8 @@
 							}, duration + 50)
 						})
 					} else {
-						let duration = (this.pageProp.pageType == 'real' || this.pageProp.pageType == 'cover') ? 500 : 0
-						if ( Math.abs(this.moveX) >= this.viewWidth / 2.5 ) {
+						let duration = (this.pageProp.pageType == 'real' || this.pageProp.pageType == 'cover') ? 300 : 0
+						if ( Math.abs(this.moveX) >= this.viewWidth / 4 ) {
 							let value = this.pageDirection == 'next' ? 1 : -1;
 							this.pageDuration(duration);
 							this.$nextTick(() => {
@@ -840,6 +861,7 @@
 		}
 	}
 </script>
+<!-- #endif -->
 
 <style scoped>
 	.page {

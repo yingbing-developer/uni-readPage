@@ -249,7 +249,7 @@
 		}
 	}
 </script>
-
+<!-- #ifdef H5 || APP-VUE -->
 <script lang="renderjs" type="module" module="scrollPage">
 	import Vue from 'vue'
 	import BScroll from '../../node_modules/@better-scroll/core'
@@ -730,6 +730,7 @@
 		}
 	}
 </script>
+<!-- #endif -->
 
 <style scoped>
 	.scroll-page {
